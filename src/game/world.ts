@@ -1,4 +1,74 @@
-import { $c, AO_TILE_SIZE, CARDINAL_DIRECTIONS, J, LAMP_CONFIG, Ln, Ne, Nr, Qc, RoundedBoxGeometry, Sr, TILE_SIZE, TerrainStyle, TileType, V, Yn, _, a, addHeightColors, al, b, br, c, cr, createBarrelTexture, createCrateTexture, createNormalTexture, d, e, en, f, fr, g, gr, h, hr, i, instanceColor, instanceEuler, instanceMatrix, instancePosition, instanceQuaternion, instanceScale, isInBounds, k, l, m, mergeGeometries, mr, n, o, p, pn, pr, r, s, t, tileIndex, u, ut, v, vr, x, xr, y, yr, z, zeroInstanceMatrix } from './shared.js';
+// @ts-nocheck
+import {
+  $c,
+  AO_TILE_SIZE,
+  CARDINAL_DIRECTIONS,
+  J,
+  LAMP_CONFIG,
+  Ln,
+  Ne,
+  Nr,
+  Qc,
+  RoundedBoxGeometry,
+  Sr,
+  TILE_SIZE,
+  TerrainStyle,
+  TileType,
+  V,
+  Yn,
+  _,
+  a,
+  addHeightColors,
+  al,
+  b,
+  br,
+  c,
+  cr,
+  createBarrelTexture,
+  createCrateTexture,
+  createNormalTexture,
+  d,
+  e,
+  en,
+  f,
+  fr,
+  g,
+  gr,
+  h,
+  hr,
+  i,
+  instanceColor,
+  instanceEuler,
+  instanceMatrix,
+  instancePosition,
+  instanceQuaternion,
+  instanceScale,
+  isInBounds,
+  k,
+  l,
+  m,
+  mergeGeometries,
+  mr,
+  n,
+  o,
+  p,
+  pn,
+  pr,
+  r,
+  s,
+  t,
+  tileIndex,
+  u,
+  ut,
+  v,
+  vr,
+  x,
+  xr,
+  y,
+  yr,
+  z,
+  zeroInstanceMatrix,
+} from "./shared.js";
 
 var World = class {
     constructor(e, t, n = 8) {
@@ -26,7 +96,9 @@ var World = class {
         (this._tick = 0),
         (this.grassUniforms = {
           uTime: { value: 0 },
-          uPushers: { value: Array.from({ length: 8 }, () => new Ne(0, 0, 1, 0)) },
+          uPushers: {
+            value: Array.from({ length: 8 }, () => new Ne(0, 0, 1, 0)),
+          },
           uReveal: { value: new Ne(0, 0, 0, 0) },
         }),
         this.generate(t),
@@ -55,7 +127,9 @@ var World = class {
       if (!isInBounds(e, t)) return !0;
       let n = tileIndex(e, t),
         r = this.tiles[n];
-      return r === TileType.WALL || r === TileType.WATER || this.blockers[n] === 1;
+      return (
+        r === TileType.WALL || r === TileType.WATER || this.blockers[n] === 1
+      );
     }
     blocksShots(e, t) {
       if (!isInBounds(e, t)) return !0;
@@ -99,7 +173,8 @@ var World = class {
       for (let e = 0; e < 44; e++)
         for (let r = 0; r < 44; r++)
           (r < 2 || e < 2 || r >= 42 || e >= 42) &&
-            ((t[tileIndex(r, e)] = TileType.WALL), (n[tileIndex(r, e)] = TerrainStyle.ROCK));
+            ((t[tileIndex(r, e)] = TileType.WALL),
+            (n[tileIndex(r, e)] = TerrainStyle.ROCK));
       this.spawns = [
         [6, 6],
         [37, 6],
@@ -115,14 +190,23 @@ var World = class {
           for (let e = -2; e <= 2; e++)
             for (let t = -2; t <= 2; t++)
               isInBounds(n + t, i + e) && (r[tileIndex(n + t, i + e)] = 1);
-      let o = (e, t) => Math.max(Math.abs(e + 0.5 - 22), Math.abs(t + 0.5 - 22)),
+      let o = (e, t) =>
+          Math.max(Math.abs(e + 0.5 - 22), Math.abs(t + 0.5 - 22)),
         s = (e, i, s, c = 0) => {
-          if (e < 2 || i < 2 || e > 21 || i > 21 || (s !== TileType.BUSH && o(e, i) < 3.6))
+          if (
+            e < 2 ||
+            i < 2 ||
+            e > 21 ||
+            i > 21 ||
+            (s !== TileType.BUSH && o(e, i) < 3.6)
+          )
             return !1;
           let l = !1;
           for (let [o, u] of a(e, i)) {
             let e = tileIndex(o, u);
-            r[e] || t[e] !== TileType.EMPTY || ((t[e] = s), (n[e] = c), (l = !0));
+            r[e] ||
+              t[e] !== TileType.EMPTY ||
+              ((t[e] = s), (n[e] = c), (l = !0));
           }
           return l;
         },
@@ -133,8 +217,14 @@ var World = class {
           r = e() < 0.5,
           a = i(2, 5),
           o = e(),
-          c = o < 0.6 ? TerrainStyle.STONE : o < 0.86 ? TerrainStyle.CRATE : TerrainStyle.BARREL;
-        for (let e = 0; e < a; e++) s(t + (r ? e : 0), n + (r ? 0 : e), TileType.WALL, c);
+          c =
+            o < 0.6
+              ? TerrainStyle.STONE
+              : o < 0.86
+                ? TerrainStyle.CRATE
+                : TerrainStyle.BARREL;
+        for (let e = 0; e < a; e++)
+          s(t + (r ? e : 0), n + (r ? 0 : e), TileType.WALL, c);
         if (e() < 0.42) {
           let o = t + (r ? a - 1 : 0),
             l = n + (r ? 0 : a - 1),
@@ -152,21 +242,31 @@ var World = class {
             i = CARDINAL_DIRECTIONS[Math.floor(e() * 4)],
             o = n + i[0],
             c = r + i[1];
-          a.some((e) => e[0] === o && e[1] === c) || (s(o, c, t) && a.push([o, c]));
+          a.some((e) => e[0] === o && e[1] === c) ||
+            (s(o, c, t) && a.push([o, c]));
         }
       };
-      for (let e = 0, t = i(6, 7); e < t; e++) l(TileType.BUSH, i(5, 12), i(3, 21), i(3, 21));
+      for (let e = 0, t = i(6, 7); e < t; e++)
+        l(TileType.BUSH, i(5, 12), i(3, 21), i(3, 21));
       l(TileType.BUSH, 7, 20, 20);
-      for (let e = 0, t = i(1, 2); e < t; e++) l(TileType.WATER, i(4, 8), i(8, 18), i(8, 18));
-      for (let e = 0; e < 4; e++) s(i(3, 21), i(3, 21), TileType.WALL, TerrainStyle.CACTUS);
+      for (let e = 0, t = i(1, 2); e < t; e++)
+        l(TileType.WATER, i(4, 8), i(8, 18), i(8, 18));
+      for (let e = 0; e < 4; e++)
+        s(i(3, 21), i(3, 21), TileType.WALL, TerrainStyle.CACTUS);
       this.lampTiles = [];
       let u = (e, i) => {
         for (let [o, s] of a(e, i)) {
           let e = tileIndex(o, s);
-          r[e] || ((t[e] = TileType.WALL), (n[e] = TerrainStyle.LAMP), this.lampTiles.push([o, s]));
+          r[e] ||
+            ((t[e] = TileType.WALL),
+            (n[e] = TerrainStyle.LAMP),
+            this.lampTiles.push([o, s]));
         }
       };
-      (u(17, 17), u(i(8, 10), i(14, 16)), u(i(14, 16), i(7, 9)), (this.boxSpots = []));
+      (u(17, 17),
+        u(i(8, 10), i(14, 16)),
+        u(i(14, 16), i(7, 9)),
+        (this.boxSpots = []));
       let d = [];
       for (let e = 0; e < 300 && d.length < 4; e++) {
         let e = i(3, 20),
@@ -198,12 +298,15 @@ var World = class {
         }
       }
       let h = 0;
-      for (let e = 0; e < t.length; e++) (t[e] === TileType.EMPTY || t[e] === TileType.BUSH) && h++;
+      for (let e = 0; e < t.length; e++)
+        (t[e] === TileType.EMPTY || t[e] === TileType.BUSH) && h++;
       return m < h * 0.93 ||
         !this.spawns.every(([e, t]) => f[tileIndex(e, t)]) ||
         !f[tileIndex(22, 22)]
         ? !1
-        : ((this.boxSpots = this.boxSpots.filter(([e, t]) => f[tileIndex(e, t)])),
+        : ((this.boxSpots = this.boxSpots.filter(
+            ([e, t]) => f[tileIndex(e, t)],
+          )),
           this.boxSpots.length >= 10);
     }
     paintBase() {
@@ -226,7 +329,8 @@ var World = class {
         let t = r() * e,
           i = r() * e,
           a = 0.6 + r() * 1.6;
-        ((n.fillStyle = r() < 0.5 ? `rgba(120,80,30,0.16)` : `rgba(255,240,200,0.16)`),
+        ((n.fillStyle =
+          r() < 0.5 ? `rgba(120,80,30,0.16)` : `rgba(255,240,200,0.16)`),
           n.beginPath(),
           n.arc(t, i, a, 0, 7),
           n.fill());
@@ -263,7 +367,8 @@ var World = class {
           if (i === TileType.WALL || this.blockers[r]) n.fillStyle = `#000`;
           else if (i === TileType.BUSH) n.fillStyle = `#6a6a6a`;
           else continue;
-          let a = i === TileType.WALL && this.styles[r] === TerrainStyle.LAMP ? 3 : 0;
+          let a =
+            i === TileType.WALL && this.styles[r] === TerrainStyle.LAMP ? 3 : 0;
           n.fillRect(
             t * AO_TILE_SIZE + a,
             e * AO_TILE_SIZE + a,
@@ -296,7 +401,9 @@ var World = class {
         (t.globalCompositeOperation = `source-over`));
     }
     buildGround() {
-      ((this.baseCanvas = this.paintBase()), this.paintAO(), this.composeGround());
+      ((this.baseCanvas = this.paintBase()),
+        this.paintAO(),
+        this.composeGround());
       let e = new cr(this.groundCanvas);
       ((e.colorSpace = k), (e.anisotropy = this.anisotropy));
       let t = new cr(this.aoCanvas);
@@ -339,7 +446,8 @@ var World = class {
           }
           let u = 0.12 / 44,
             d = (n, r) =>
-              isInBounds(t + n, e + r) && this.tiles[tileIndex(t + n, e + r)] !== TileType.WATER;
+              isInBounds(t + n, e + r) &&
+              this.tiles[tileIndex(t + n, e + r)] !== TileType.WATER;
           (d(0, -1) &&
             o(
               [n, 0, r],
@@ -402,7 +510,13 @@ var World = class {
         u.setAttribute(`normal`, new en(i, 3)),
         u.setAttribute(`uv`, new en(r, 2)),
         u.setIndex(a));
-      let d = new Nr({ map: e, aoMap: t, aoMapIntensity: 1, roughness: 0.96, metalness: 0 }),
+      let d = new Nr({
+          map: e,
+          aoMap: t,
+          aoMapIntensity: 1,
+          roughness: 0.96,
+          metalness: 0,
+        }),
         f = new Ln(u, d);
       ((f.receiveShadow = !0),
         (f.name = `ground`),
@@ -440,7 +554,9 @@ var World = class {
       for (let e = 0; e < 44; e++)
         for (let n = 0; n < 44; n++) {
           let r = tileIndex(n, e);
-          this.tiles[r] === TileType.WALL && t[this.styles[r]] && t[this.styles[r]].push([n, e]);
+          this.tiles[r] === TileType.WALL &&
+            t[this.styles[r]] &&
+            t[this.styles[r]].push([n, e]);
         }
       let n = (e, t, n, r, i, a, o, s, c, l, u, d, f = 0, p = 0) => {
         (instanceEuler.set(f, s, p),
@@ -455,18 +571,48 @@ var World = class {
           n >= 0 && (this.instanceOf[tileIndex(n, r)] = t));
       };
       {
-        let r = addHeightColors(new RoundedBoxGeometry(1, 1, 1, 3, 0.085), 0.62, 0.8),
-          i = new Nr({ color: 16777215, roughness: 0.88, metalness: 0, vertexColors: !0 }),
+        let r = addHeightColors(
+            new RoundedBoxGeometry(1, 1, 1, 3, 0.085),
+            0.62,
+            0.8,
+          ),
+          i = new Nr({
+            color: 16777215,
+            roughness: 0.88,
+            metalness: 0,
+            vertexColors: !0,
+          }),
           a = this.addInstanced(`stone`, r, i, t[TerrainStyle.STONE].length);
         t[TerrainStyle.STONE].forEach(([t, r], i) => {
           let o = e() < 0.13 ? 1.75 + e() * 0.2 : 1.02 + e() * 0.28;
-          (instanceColor.setHSL(0.61 + e() * 0.03, 0.12 + e() * 0.06, 0.58 + e() * 0.1),
-            n(a, i, t, r, this.center(t), o / 2 - 0.07, this.center(r), 0, 1, o, 1, instanceColor));
+          (instanceColor.setHSL(
+            0.61 + e() * 0.03,
+            0.12 + e() * 0.06,
+            0.58 + e() * 0.1,
+          ),
+            n(
+              a,
+              i,
+              t,
+              r,
+              this.center(t),
+              o / 2 - 0.07,
+              this.center(r),
+              0,
+              1,
+              o,
+              1,
+              instanceColor,
+            ));
         });
       }
       {
         let r = addHeightColors(new fr(0.94, 0.94, 0.94), 0.7),
-          i = new Nr({ map: createCrateTexture(), roughness: 0.82, vertexColors: !0 }),
+          i = new Nr({
+            map: createCrateTexture(),
+            roughness: 0.82,
+            vertexColors: !0,
+          }),
           a = this.addInstanced(`crate`, r, i, t[TerrainStyle.CRATE].length);
         t[TerrainStyle.CRATE].forEach(([t, r], i) => {
           let o = 0.97 + e() * 0.06;
@@ -489,7 +635,11 @@ var World = class {
       }
       {
         let r = addHeightColors(new hr(0.41, 0.37, 1.04, 16), 0.68),
-          i = new Nr({ map: createBarrelTexture(), roughness: 0.7, vertexColors: !0 }),
+          i = new Nr({
+            map: createBarrelTexture(),
+            roughness: 0.7,
+            vertexColors: !0,
+          }),
           a = this.addInstanced(`barrel`, r, i, t[TerrainStyle.BARREL].length);
         t[TerrainStyle.BARREL].forEach(([t, r], i) => {
           (instanceColor.setHSL(0.07, 0.1, 0.85 + e() * 0.15),
@@ -527,10 +677,16 @@ var World = class {
             n.clone().translate(-0.43, 0.68, 0),
           ),
           (this.cactusGeo = addHeightColors(mergeGeometries(e), 0.6)),
-          (this.cactusMat = new Nr({ color: 16777215, roughness: 0.7, vertexColors: !0 })),
+          (this.cactusMat = new Nr({
+            color: 16777215,
+            roughness: 0.7,
+            vertexColors: !0,
+          })),
           (this.cactusList = t[TerrainStyle.CACTUS]));
       }
-      ((this.rockList = t[TerrainStyle.ROCK]), (this._place = n), (this._rng = e));
+      ((this.rockList = t[TerrainStyle.ROCK]),
+        (this._place = n),
+        (this._rng = e));
     }
     buildOutskirts() {
       let e = this._rng,
@@ -540,7 +696,8 @@ var World = class {
       for (let t = 0; t < 150; t++) {
         let t = (e() - 0.5) * 70,
           i = (e() - 0.5) * 66 - 4;
-        (Math.abs(t) < 22.8 && Math.abs(i) < 22.8) || (e() < 0.62 ? n : r).push([t, i]);
+        (Math.abs(t) < 22.8 && Math.abs(i) < 22.8) ||
+          (e() < 0.62 ? n : r).push([t, i]);
       }
       let i = new vr(0.78, 0),
         a = new Nr({ color: 16777215, roughness: 0.93, metalness: 0 }),
@@ -549,9 +706,14 @@ var World = class {
         let a =
             r >= 42
               ? 0.95 + e() * 0.4
-              : (n === 0 || r === 0 || n === 43 || r === 43 ? 1.9 : 1.35) + e() * 0.9,
+              : (n === 0 || r === 0 || n === 43 || r === 43 ? 1.9 : 1.35) +
+                e() * 0.9,
           s = 1.05 + e() * 0.32;
-        (instanceColor.setHSL(0.05 + e() * 0.025, 0.36 + e() * 0.1, 0.41 + e() * 0.1),
+        (instanceColor.setHSL(
+          0.05 + e() * 0.025,
+          0.36 + e() * 0.1,
+          0.41 + e() * 0.1,
+        ),
           t(
             o,
             i,
@@ -571,7 +733,11 @@ var World = class {
       }),
         n.forEach(([n, r], i) => {
           let a = 0.5 + e() * 1.3;
-          (instanceColor.setHSL(0.07 + e() * 0.025, 0.22 + e() * 0.1, 0.4 + e() * 0.12),
+          (instanceColor.setHSL(
+            0.07 + e() * 0.025,
+            0.22 + e() * 0.1,
+            0.4 + e() * 0.12,
+          ),
             t(
               o,
               this.rockList.length + i,
@@ -599,7 +765,20 @@ var World = class {
       (this.cactusList.forEach(([n, r], i) => {
         let a = 1 + e() * 0.3;
         (instanceColor.setHSL(0.3 + e() * 0.04, 0.42, 0.42 + e() * 0.08),
-          t(s, i, n, r, this.center(n), -0.04, this.center(r), e() * 6.28, a, a, a, instanceColor));
+          t(
+            s,
+            i,
+            n,
+            r,
+            this.center(n),
+            -0.04,
+            this.center(r),
+            e() * 6.28,
+            a,
+            a,
+            a,
+            instanceColor,
+          ));
       }),
         r.forEach(([n, r], i) => {
           let a = 0.8 + e() * 0.7;
@@ -619,7 +798,10 @@ var World = class {
               instanceColor,
             ));
         }));
-      let c = new Nr({ color: new J().setHSL(33 / 360, 0.38, 0.5), roughness: 1 });
+      let c = new Nr({
+        color: new J().setHSL(33 / 360, 0.38, 0.5),
+        roughness: 1,
+      });
       for (let [e, t, n, r] of [
         [0, -67, 224, 90],
         [0, 67, 224, 90],
@@ -715,7 +897,8 @@ varying vec3 vBladeWorld;`,
       let o = this.addInstanced(`bush`, n, i, t.length * 13),
         s = 0;
       for (let [n, r] of t) {
-        ((this.bushRange[tileIndex(n, r) * 2] = s), (this.bushRange[tileIndex(n, r) * 2 + 1] = 13));
+        ((this.bushRange[tileIndex(n, r) * 2] = s),
+          (this.bushRange[tileIndex(n, r) * 2 + 1] = 13));
         for (let t = 0; t < 13; t++) {
           let i = t < 9 ? (t % 3) / 3 + 1 / 6 : e(),
             a = t < 9 ? Math.floor(t / 3) / 3 + 1 / 6 : e(),
@@ -730,7 +913,11 @@ varying vec3 vBladeWorld;`,
               instanceScale.set(u * 1.15, u * (0.95 + e() * 0.35), u * 1.15),
             ),
             o.setMatrixAt(s, instanceMatrix),
-            instanceColor.setHSL(0.27 + e() * 0.06, 0.55 + e() * 0.15, 0.36 + e() * 0.1),
+            instanceColor.setHSL(
+              0.27 + e() * 0.06,
+              0.55 + e() * 0.15,
+              0.36 + e() * 0.1,
+            ),
             o.setColorAt(s, instanceColor),
             s++);
         }
@@ -739,7 +926,8 @@ varying vec3 vBladeWorld;`,
     }
     buildWater() {
       let e = !1;
-      for (let t = 0; t < this.tiles.length; t++) this.tiles[t] === TileType.WATER && (e = !0);
+      for (let t = 0; t < this.tiles.length; t++)
+        this.tiles[t] === TileType.WATER && (e = !0);
       if (!e) return;
       let t = createNormalTexture(),
         n = new Nr({
@@ -766,14 +954,26 @@ varying vec3 vBladeWorld;`,
       let e = this.lampTiles.length,
         t = mergeGeometries([
           new hr(0.3, 0.4, 0.5, 10).translate(0, 0.25, 0),
-          new hr(0.05, 0.075, LAMP_CONFIG.height, 8).translate(0, LAMP_CONFIG.height / 2, 0),
+          new hr(0.05, 0.075, LAMP_CONFIG.height, 8).translate(
+            0,
+            LAMP_CONFIG.height / 2,
+            0,
+          ),
           new fr(LAMP_CONFIG.arm + 0.12, 0.07, 0.07).translate(
             LAMP_CONFIG.arm / 2,
             LAMP_CONFIG.height,
             0,
           ),
-          new hr(0.07, 0.15, 0.07, 8).translate(LAMP_CONFIG.arm, LAMP_CONFIG.height - 0.02, 0),
-          new hr(0.1, 0.06, 0.05, 8).translate(LAMP_CONFIG.arm, LAMP_CONFIG.height - 0.42, 0),
+          new hr(0.07, 0.15, 0.07, 8).translate(
+            LAMP_CONFIG.arm,
+            LAMP_CONFIG.height - 0.02,
+            0,
+          ),
+          new hr(0.1, 0.06, 0.05, 8).translate(
+            LAMP_CONFIG.arm,
+            LAMP_CONFIG.height - 0.42,
+            0,
+          ),
         ]),
         n = new Nr({ color: 4869984, roughness: 0.55, metalness: 0.25 }),
         r = this.addInstanced(`lampPost`, t, n, e),
@@ -811,7 +1011,12 @@ varying vec3 vBladeWorld;`,
     destroyTile(e, t) {
       if (!this.isBreakable(e, t)) return null;
       let n = tileIndex(e, t),
-        r = { type: this.tiles[n], style: this.styles[n], x: this.center(e), z: this.center(t) };
+        r = {
+          type: this.tiles[n],
+          style: this.styles[n],
+          x: this.center(e),
+          z: this.center(t),
+        };
       if (this.tiles[n] === TileType.BUSH) {
         let e = this.bushRange[n * 2],
           t = this.bushRange[n * 2 + 1],
@@ -822,7 +1027,10 @@ varying vec3 vBladeWorld;`,
         let e = [`stone`, `crate`, `barrel`, `cactus`][this.styles[n]],
           t = this.meshes[e],
           r = this.instanceOf[n];
-        t && r >= 0 && (t.setMatrixAt(r, zeroInstanceMatrix), (t.instanceMatrix.needsUpdate = !0));
+        t &&
+          r >= 0 &&
+          (t.setMatrixAt(r, zeroInstanceMatrix),
+          (t.instanceMatrix.needsUpdate = !0));
       }
       return ((this.tiles[n] = TileType.EMPTY), (this.aoDirty = !0), r);
     }
@@ -884,10 +1092,22 @@ varying vec3 vBladeWorld;`,
         y = d === 0 ? 1 / 0 : (d > 0 ? 1 - _ : _) * h,
         b = 0;
       for (let n = 0; n < 160; n++) {
-        if ((v < y ? ((b = v), (v += m), (a += f)) : ((b = y), (y += h), (o += p)), b > l))
+        if (
+          (v < y
+            ? ((b = v), (v += m), (a += f))
+            : ((b = y), (y += h), (o += p)),
+          b > l)
+        )
           return null;
         if (this.blocksShots(a, o))
-          return ((i.tx = a), (i.ty = o), (i.dist = b), (i.x = e + u * b), (i.z = t + d * b), i);
+          return (
+            (i.tx = a),
+            (i.ty = o),
+            (i.dist = b),
+            (i.x = e + u * b),
+            (i.z = t + d * b),
+            i
+          );
       }
       return null;
     }
@@ -943,7 +1163,8 @@ varying vec3 vBladeWorld;`,
         if (e === d) {
           let t = [],
             n = e;
-          for (; n !== u && n >= 0;) (t.push([n % 44, (n / 44) | 0]), (n = s[n]));
+          for (; n !== u && n >= 0;)
+            (t.push([n % 44, (n / 44) | 0]), (n = s[n]));
           return t.reverse();
         }
         if (l[e] === a) continue;
@@ -959,11 +1180,14 @@ varying vec3 vBladeWorld;`,
             let m = tileIndex(u, f);
             if (
               (m !== d && !this.isWalkable(u, f)) ||
-              (l && r && (!this.isWalkable(t + l, n) || !this.isWalkable(t, n + r)))
+              (l &&
+                r &&
+                (!this.isWalkable(t + l, n) || !this.isWalkable(t, n + r)))
             )
               continue;
             let g = o[e] + (l && r ? 1.4142 : 1) + (i ? i(u, f) : 0);
-            (c[m] === a && g >= o[m]) || ((o[m] = g), (c[m] = a), (s[m] = e), p(m, g + h(u, f)));
+            (c[m] === a && g >= o[m]) ||
+              ((o[m] = g), (c[m] = a), (s[m] = e), p(m, g + h(u, f)));
           }
       }
       return null;
@@ -976,12 +1200,16 @@ varying vec3 vBladeWorld;`,
       for (let o = 0; o <= 4 && !i; o++)
         for (let s = -o; s <= o; s++)
           for (let c = -o; c <= o; c++) {
-            if (Math.max(Math.abs(c), Math.abs(s)) !== o || !this.isWalkable(n + c, r + s))
+            if (
+              Math.max(Math.abs(c), Math.abs(s)) !== o ||
+              !this.isWalkable(n + c, r + s)
+            )
               continue;
             let l = this.center(n + c),
               u = this.center(r + s),
               d = (l - e) * (l - e) + (u - t) * (u - t);
-            d < a && ((a = d), (i = { x: o === 0 ? e : l, z: o === 0 ? t : u }));
+            d < a &&
+              ((a = d), (i = { x: o === 0 ? e : l, z: o === 0 ? t : u }));
           }
       return i || { x: e, z: t };
     }
@@ -990,7 +1218,8 @@ varying vec3 vBladeWorld;`,
         this.waterNormal && this.waterNormal.offset.set(t * 0.021, t * 0.013),
         this.aoDirty
           ? ((this.aoTimer -= e),
-            this.aoTimer <= 0 && (this.rebakeGround(), (this.aoDirty = !1), (this.aoTimer = 0.3)))
+            this.aoTimer <= 0 &&
+              (this.rebakeGround(), (this.aoDirty = !1), (this.aoTimer = 0.3)))
           : (this.aoTimer = Math.max(0, this.aoTimer - e)));
     }
     dispose() {
@@ -1003,27 +1232,15 @@ varying vec3 vBladeWorld;`,
   $l = (e, t) => Ql[e] || (Ql[e] = t()),
   eu = (e, t = 18, n = 14) => $l(`s${e}_${t}_${n}`, () => new xr(e, t, n)),
   tu = (e, t) => $l(`c${e}_${t}`, () => new pr(e, t, 5, 12)),
-  nu = (e, t, n, r = 16) => $l(`y${e}_${t}_${n}_${r}`, () => new hr(e, t, n, r)),
+  nu = (e, t, n, r = 16) =>
+    $l(`y${e}_${t}_${n}_${r}`, () => new hr(e, t, n, r)),
   ru = (e, t, n) => $l(`b${e}_${t}_${n}`, () => new fr(e, t, n)),
-  iu = (e, t) => $l(`d${e}_${t}`, () => new xr(e, 20, 12, 0, Math.PI * 2, 0, Math.PI * t)),
+  iu = (e, t) =>
+    $l(`d${e}_${t}`, () => new xr(e, 20, 12, 0, Math.PI * 2, 0, Math.PI * t)),
   au = (e, t) => $l(`t${e}_${t}`, () => new Sr(e, t, 8, 24)),
   ou = new br(0.5, 0.64, 44).rotateX(-Math.PI / 2),
   su = new mr(0.5, 36).rotateX(-Math.PI / 2),
   cu = new br(0.7, 0.8, 44).rotateX(-Math.PI / 2),
   lu = (e, t = {}) => new Nr({ color: e, roughness: 0.62, metalness: 0, ...t });
 
-export {
-  $l,
-  Ql,
-  World,
-  au,
-  cu,
-  eu,
-  iu,
-  lu,
-  nu,
-  ou,
-  ru,
-  su,
-  tu
-};
+export { $l, Ql, World, au, cu, eu, iu, lu, nu, ou, ru, su, tu };

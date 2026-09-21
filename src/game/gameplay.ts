@@ -1,5 +1,76 @@
-import { $c, BRAWLER_DEFS, COLLISION_RADIUS, DIFFICULTIES, GAME_CONFIG, H, Hi, J, Ke, Ln, N, Nr, Q, QUALITY_PRESETS, Re, T, TileType, Tn, V, Yn, Zt, _, _e, _n, a, al, ao, ar, b, br, c, cr, d, e, el, f, fr, g, h, i, il, instanceColor, instanceMatrix, jr, k, l, m, mr, n, nl, o, on, p, pn, q, r, s, sl, t, tl, u, ut, v, w, x, xr, y, yr, z } from './shared.js';
-import { au, cu, eu, iu, lu, nu, ou, ru, su, tu } from './world.js';
+// @ts-nocheck
+import {
+  $c,
+  BRAWLER_DEFS,
+  COLLISION_RADIUS,
+  DIFFICULTIES,
+  GAME_CONFIG,
+  H,
+  Hi,
+  J,
+  Ke,
+  Ln,
+  N,
+  Nr,
+  Q,
+  QUALITY_PRESETS,
+  Re,
+  T,
+  TileType,
+  Tn,
+  V,
+  Yn,
+  Zt,
+  _,
+  _e,
+  _n,
+  a,
+  al,
+  ao,
+  ar,
+  b,
+  br,
+  c,
+  cr,
+  d,
+  e,
+  el,
+  f,
+  fr,
+  g,
+  h,
+  i,
+  il,
+  instanceColor,
+  instanceMatrix,
+  jr,
+  k,
+  l,
+  m,
+  mr,
+  n,
+  nl,
+  o,
+  on,
+  p,
+  pn,
+  q,
+  r,
+  s,
+  sl,
+  t,
+  tl,
+  u,
+  ut,
+  v,
+  w,
+  x,
+  xr,
+  y,
+  yr,
+  z,
+} from "./shared.js";
+import { au, cu, eu, iu, lu, nu, ou, ru, su, tu } from "./world.js";
 
 function uu(e, t) {
   let n = e.palette,
@@ -13,7 +84,8 @@ function uu(e, t) {
       white: lu(16777215, { roughness: 0.35 }),
       black: lu(1381659, { roughness: 0.4 }),
     };
-  t && (r.body.color.offsetHSL(t, 0, 0), r.accent.color.offsetHSL(t * 0.6, 0, 0));
+  t &&
+    (r.body.color.offsetHSL(t, 0, 0), r.accent.color.offsetHSL(t * 0.6, 0, 0));
   let i = lu(3351040, { emissive: 16765562, emissiveIntensity: 3 }),
     a = new ut(),
     o = new ut();
@@ -40,8 +112,28 @@ function uu(e, t) {
       );
     }),
     l = e.id === `titan`,
-    u = s(o, tu(0.235, 0.2), r.body, 0, 0.6, 0, l ? 1.32 : 1, l ? 1.08 : 1, l ? 1.12 : 0.86);
-  s(o, nu(0.245, 0.245, 0.075), r.dark, 0, 0.42, 0, l ? 1.28 : 1, 1, l ? 1.1 : 0.88);
+    u = s(
+      o,
+      tu(0.235, 0.2),
+      r.body,
+      0,
+      0.6,
+      0,
+      l ? 1.32 : 1,
+      l ? 1.08 : 1,
+      l ? 1.12 : 0.86,
+    );
+  s(
+    o,
+    nu(0.245, 0.245, 0.075),
+    r.dark,
+    0,
+    0.42,
+    0,
+    l ? 1.28 : 1,
+    1,
+    l ? 1.1 : 0.88,
+  );
   let d = new ut();
   (d.position.set(0, 1.07, 0), o.add(d));
   let f = s(d, eu(0.3, 24, 18), l ? r.body : r.skin, 0, 0, 0, 1, 0.94, 0.97);
@@ -54,8 +146,19 @@ function uu(e, t) {
   let p = l ? 0.38 : 0.31,
     m = [-1, 1].map((e) => {
       let t = new ut();
-      (t.position.set(e * p, 0.8, 0), s(t, tu(0.075, 0.15), l ? r.skin : r.body, 0, -0.12, 0));
-      let n = s(t, eu(l ? 0.165 : 0.095), l ? r.accent : r.skin, 0, -0.28, 0, 1, 1, l ? 1.12 : 1);
+      (t.position.set(e * p, 0.8, 0),
+        s(t, tu(0.075, 0.15), l ? r.skin : r.body, 0, -0.12, 0));
+      let n = s(
+        t,
+        eu(l ? 0.165 : 0.095),
+        l ? r.accent : r.skin,
+        0,
+        -0.28,
+        0,
+        1,
+        1,
+        l ? 1.12 : 1,
+      );
       return ((t.userData.hand = n), o.add(t), t);
     }),
     h = new ut();
@@ -75,7 +178,14 @@ function uu(e, t) {
     let e = s(d, au(0.295, 0.034), r.body, 0, 0.1, 0);
     ((e.rotation.x = Math.PI / 2), h.position.set(0.02, 0.63, 0.24));
     for (let e of [-1, 1])
-      s(h, nu(0.045, 0.045, 0.62, 10), r.metal, e * 0.046, 0.02, 0.36).rotation.x = Math.PI / 2;
+      s(
+        h,
+        nu(0.045, 0.045, 0.62, 10),
+        r.metal,
+        e * 0.046,
+        0.02,
+        0.36,
+      ).rotation.x = Math.PI / 2;
     (s(h, ru(0.1, 0.13, 0.34), r.wood, 0, -0.02, -0.06),
       s(h, ru(0.15, 0.085, 0.2), r.wood, 0, -0.04, 0.3),
       g.push(new H(0.02, 0.65, 0.95)),
@@ -90,8 +200,22 @@ function uu(e, t) {
     let e = s(o, au(0.19, 0.06), r.accent, 0, 0.87, 0.02);
     ((e.rotation.x = Math.PI / 2), h.position.set(0, 0.67, 0.34));
     for (let e of [-1, 1])
-      ((s(h, nu(0.035, 0.035, 0.32, 8), r.metal, e * 0.27, 0.025, 0.18).rotation.x = Math.PI / 2),
-        (s(h, nu(0.058, 0.058, 0.09, 10), r.metal, e * 0.27, 0.025, 0.03).rotation.x = Math.PI / 2),
+      ((s(
+        h,
+        nu(0.035, 0.035, 0.32, 8),
+        r.metal,
+        e * 0.27,
+        0.025,
+        0.18,
+      ).rotation.x = Math.PI / 2),
+        (s(
+          h,
+          nu(0.058, 0.058, 0.09, 10),
+          r.metal,
+          e * 0.27,
+          0.025,
+          0.03,
+        ).rotation.x = Math.PI / 2),
         s(h, ru(0.06, 0.14, 0.075), r.dark, e * 0.27, -0.055, -0.02),
         g.push(new H(e * 0.27, 0.7, 0.72)));
     _.armBase = [
@@ -101,7 +225,8 @@ function uu(e, t) {
   } else if (e.id === `fuse`) {
     (s(d, iu(0.335, 0.5), r.accent, 0, 0.04, 0),
       s(d, nu(0.365, 0.365, 0.035, 24), r.accent, 0, 0.06, 0.02),
-      (s(d, nu(0.078, 0.078, 0.07, 12), r.metal, 0, 0.2, 0.3).rotation.x = Math.PI / 2));
+      (s(d, nu(0.078, 0.078, 0.07, 12), r.metal, 0, 0.2, 0.3).rotation.x =
+        Math.PI / 2));
     let e = s(d, eu(0.062), i, 0, 0.2, 0.34, 1, 1, 0.4);
     ((e.castShadow = !1),
       s(d, eu(0.2), r.white, 0, -0.17, 0.14, 1.12, 0.8, 0.72),
@@ -177,7 +302,10 @@ var brawlerId = 1,
         this.root.add(this.ring),
         this.isPlayer)
       ) {
-        let e = new Ln(su, new Tn({ color: r, transparent: !0, opacity: 0.16, depthWrite: !1 }));
+        let e = new Ln(
+          su,
+          new Tn({ color: r, transparent: !0, opacity: 0.16, depthWrite: !1 }),
+        );
         ((e.position.y = 0.035),
           (e.renderOrder = 2),
           (e.userData.noAO = !0),
@@ -255,13 +383,19 @@ var brawlerId = 1,
         n = t[this.muzzleIndex % t.length],
         r = Math.cos(this.aimAngle),
         i = Math.sin(this.aimAngle);
-      return (e.set(this.x + n.x * r + n.z * i, n.y, this.z - n.x * i + n.z * r), e);
+      return (
+        e.set(this.x + n.x * r + n.z * i, n.y, this.z - n.x * i + n.z * r),
+        e
+      );
     }
     canAct() {
       return this.alive && !this.leap && this.game.state !== `countdown`;
     }
     attack(e, t, n, r) {
-      return !this.canAct() || this.ammo < 1 || this.fireCooldown > 0 || this.burst
+      return !this.canAct() ||
+        this.ammo < 1 ||
+        this.fireCooldown > 0 ||
+        this.burst
         ? !1
         : (--this.ammo, this.startVolley(this.def.attack, e, t, n, r, !1), !0);
     }
@@ -300,11 +434,26 @@ var brawlerId = 1,
             e.speed * (0.94 + Math.random() * 0.12),
           );
         }
-        (this.game.effects.muzzle(r.x, r.y, r.z, t, n, this.bulletColor(a), a ? 1.6 : 1.1),
+        (this.game.effects.muzzle(
+          r.x,
+          r.y,
+          r.z,
+          t,
+          n,
+          this.bulletColor(a),
+          a ? 1.6 : 1.1,
+        ),
           this.game.audio.play(a ? `blastBig` : `blast`, this.x, this.z),
           a && this.knock.set(-t * 3, -n * 3));
       } else if (e.kind === `burst` || e.kind === `melee`)
-        ((this.burst = { a: e, left: e.count, timer: 0, dirX: t, dirZ: n, isSuper: a }),
+        ((this.burst = {
+          a: e,
+          left: e.count,
+          timer: 0,
+          dirX: t,
+          dirZ: n,
+          isSuper: a,
+        }),
           (this.fireCooldown = e.count * e.interval + 0.12));
       else if (e.kind === `lob`) {
         this.recoil = 1;
@@ -329,12 +478,24 @@ var brawlerId = 1,
         t = e.a;
       (this.muzzleIndex++, (this.recoil = 1));
       let n = this.muzzleWorld(new H()),
-        r = Math.atan2(e.dirX, e.dirZ) + (Math.random() - 0.5) * 2 * (t.jitter || 0),
+        r =
+          Math.atan2(e.dirX, e.dirZ) +
+          (Math.random() - 0.5) * 2 * (t.jitter || 0),
         i = Math.sin(r),
         a = Math.cos(r);
-      (this.game.combat.spawnBullet(this, n.x, n.z, i, a, t, e.isSuper, t.speed),
+      (this.game.combat.spawnBullet(
+        this,
+        n.x,
+        n.z,
+        i,
+        a,
+        t,
+        e.isSuper,
+        t.speed,
+      ),
         t.kind === `melee`
-          ? ((this.punch[this.muzzleIndex % 2] = 1), this.game.audio.play(`punch`, this.x, this.z))
+          ? ((this.punch[this.muzzleIndex % 2] = 1),
+            this.game.audio.play(`punch`, this.x, this.z))
           : (this.game.effects.muzzle(
               n.x,
               n.y,
@@ -344,17 +505,29 @@ var brawlerId = 1,
               this.bulletColor(e.isSuper),
               e.isSuper ? 1.1 : 0.75,
             ),
-            this.game.audio.play(e.isSuper ? `shotBig` : `shot`, this.x, this.z)));
+            this.game.audio.play(
+              e.isSuper ? `shotBig` : `shot`,
+              this.x,
+              this.z,
+            )));
     }
     addCharge(e) {
       if (!this.alive) return;
       let t = this.superReady;
-      ((this.superCharge = Math.min(1, this.superCharge + e / this.def.superCharge)),
-        !t && this.superReady && this.isPlayer && this.game.audio.play(`ready`));
+      ((this.superCharge = Math.min(
+        1,
+        this.superCharge + e / this.def.superCharge,
+      )),
+        !t &&
+          this.superReady &&
+          this.isPlayer &&
+          this.game.audio.play(`ready`));
     }
     takeDamage(e, t, n = !1) {
       if (!this.alive || this.airborne || this.spawnT > 0) return 0;
-      (t && !t.isPlayer && (e *= this.isPlayer ? this.game.difficulty.damage : 0.34),
+      (t &&
+        !t.isPlayer &&
+        (e *= this.isPlayer ? this.game.difficulty.damage : 0.34),
         t && ((this.lastAttacker = t), (this.lastHitTime = this.game.elapsed)),
         (e = Math.round(e)));
       let r = Math.min(this.hp, e);
@@ -367,7 +540,13 @@ var brawlerId = 1,
         (this.revealT = Math.max(this.revealT, 0.9)),
         this.def.id === `titan` && this.addCharge(e * 0.35),
         (!this.hidden || this.isPlayer) &&
-          this.game.hud.floatText(this.x, 1.7, this.z, `${e}`, this.isPlayer ? `dmg-self` : `dmg`),
+          this.game.hud.floatText(
+            this.x,
+            1.7,
+            this.z,
+            `${e}`,
+            this.isPlayer ? `dmg-self` : `dmg`,
+          ),
         t && t !== this && (t.addCharge(r), (t.lastCombat = this.game.elapsed)),
         n || this.game.audio.play(`hit`, this.x, this.z),
         this.isPlayer && this.game.onPlayerHurt(e),
@@ -389,7 +568,10 @@ var brawlerId = 1,
       this.cubes++;
       let e = this.hp / this.maxHp;
       ((this.maxHp += GAME_CONFIG.cubeHp),
-        (this.hp = Math.min(this.maxHp, Math.round(this.maxHp * e) + GAME_CONFIG.cubeHp * 0.5)),
+        (this.hp = Math.min(
+          this.maxHp,
+          Math.round(this.maxHp * e) + GAME_CONFIG.cubeHp * 0.5,
+        )),
         (this.squash = -1));
     }
     die(e) {
@@ -425,14 +607,16 @@ var brawlerId = 1,
         (this.squash = nl(this.squash, 0, 12, e)),
         this.ammo < 3
           ? ((this.reloadT += e / this.def.reload),
-            this.reloadT >= 1 && ((this.reloadT = 0), (this.ammo = Math.min(3, this.ammo + 1))))
+            this.reloadT >= 1 &&
+              ((this.reloadT = 0), (this.ammo = Math.min(3, this.ammo + 1))))
           : (this.reloadT = 0),
         this.burst)
       ) {
         let t = this.burst;
         for (t.timer -= e; t.timer <= 0 && t.left > 0;)
           (this.fireBurstShot(), t.left--, (t.timer += t.a.interval));
-        (t.left <= 0 && (this.burst = null), (this.aimHold = Math.max(this.aimHold, 0.35)));
+        (t.left <= 0 && (this.burst = null),
+          (this.aimHold = Math.max(this.aimHold, 0.35)));
       }
       let r = this.root.position;
       if (this.leap) {
@@ -461,19 +645,28 @@ var brawlerId = 1,
           a = this.knock.y;
         ((r.x += (this.vel.x + i) * e), (r.z += (this.vel.y + a) * e));
         let o = Math.exp(-7 * e);
-        (this.knock.multiplyScalar(o), t.world.resolveCircle(r, COLLISION_RADIUS));
+        (this.knock.multiplyScalar(o),
+          t.world.resolveCircle(r, COLLISION_RADIUS));
       }
       let i = this.vel.lengthSq() > 0.2 && !this.leap,
-        a = this.aimHold > 0 ? this.aimAngle : i ? Math.atan2(this.vel.x, this.vel.y) : this.facing;
+        a =
+          this.aimHold > 0
+            ? this.aimAngle
+            : i
+              ? Math.atan2(this.vel.x, this.vel.y)
+              : this.facing;
       ((this.facing = il(this.facing, a, this.aimHold > 0 ? 26 : 13, e)),
         (this.root.rotation.y = this.facing));
       let o = this.inBush;
       ((this.inBush = !this.leap && t.world.isBushAt(r.x, r.z)),
-        this.inBush !== o && (!this.hidden || this.isPlayer) && t.effects.leaves(r.x, r.z, 5),
+        this.inBush !== o &&
+          (!this.hidden || this.isPlayer) &&
+          t.effects.leaves(r.x, r.z, 5),
         t.elapsed - this.lastCombat > 3 &&
           this.hp < this.maxHp &&
           ((this.regenT += e),
-          this.regenT >= 1 && ((this.regenT = 0), this.heal(Math.round(this.maxHp * 0.13)))),
+          this.regenT >= 1 &&
+            ((this.regenT = 0), this.heal(Math.round(this.maxHp * 0.13)))),
         this.animate(e, i));
     }
     animate(e, t) {
@@ -489,21 +682,26 @@ var brawlerId = 1,
       let a = t ? Math.sin(this.walkPhase) * 0.8 : 0;
       ((n.legs[0].rotation.x = nl(n.legs[0].rotation.x, a, 20, e)),
         (n.legs[1].rotation.x = nl(n.legs[1].rotation.x, -a, 20, e)));
-      let o = t ? Math.abs(Math.cos(this.walkPhase)) * 0.05 : Math.sin(r * 2.3 + this.id) * 0.012,
+      let o = t
+          ? Math.abs(Math.cos(this.walkPhase)) * 0.05
+          : Math.sin(r * 2.3 + this.id) * 0.012,
         s = this.squash;
       ((n.body.position.y = o - Math.max(0, s) * 0.07),
         n.body.scale.set(1 + s * 0.09, 1 - s * 0.11, 1 + s * 0.09),
         this.leap || (n.body.rotation.x = (t ? 0.13 : 0) - this.recoil * 0.2),
         (n.head.rotation.z = t ? Math.sin(this.walkPhase) * 0.05 : 0),
         (n.weapon.position.z =
-          (n.weapon.userData.baseZ ?? (n.weapon.userData.baseZ = n.weapon.position.z)) -
+          (n.weapon.userData.baseZ ??
+            (n.weapon.userData.baseZ = n.weapon.position.z)) -
           this.recoil * 0.17));
       let c = n.pose.armBase;
       if (n.pose.punch)
         for (let e = 0; e < 2; e++) {
           let r = this.punch[e];
           ((n.arms[e].rotation.x =
-            c[e][0] - r * 0.75 + (t ? Math.sin(this.walkPhase + e * Math.PI) * 0.25 : 0)),
+            c[e][0] -
+            r * 0.75 +
+            (t ? Math.sin(this.walkPhase + e * Math.PI) * 0.25 : 0)),
             (n.arms[e].position.z = r * 0.42));
         }
       else
@@ -546,8 +744,11 @@ function xu() {
     else {
       ((n.fillStyle = `#5d4a86`), n.fillRect(0, 0, 128, 128));
       for (let e = 0; e < 4; e++)
-        ((n.fillStyle = e % 2 ? `#584480` : `#65518f`), n.fillRect(0, e * 32, 128, 30));
-      ((n.strokeStyle = `#33264f`), (n.lineWidth = 16), n.strokeRect(8, 8, 112, 112));
+        ((n.fillStyle = e % 2 ? `#584480` : `#65518f`),
+          n.fillRect(0, e * 32, 128, 30));
+      ((n.strokeStyle = `#33264f`),
+        (n.lineWidth = 16),
+        n.strokeRect(8, 8, 112, 112));
     }
     ((n.fillStyle = e ? `#7dffb0` : `#2fe07a`),
       n.beginPath(),
@@ -559,7 +760,10 @@ function xu() {
       n.lineTo(68, 54),
       n.closePath(),
       n.fill(),
-      e && ((n.strokeStyle = `#2aff80`), (n.lineWidth = 3), n.strokeRect(17, 17, 94, 94)));
+      e &&
+        ((n.strokeStyle = `#2aff80`),
+        (n.lineWidth = 3),
+        n.strokeRect(17, 17, 94, 94)));
     let r = new cr(t);
     return ((r.colorSpace = k), r);
   };
@@ -595,11 +799,21 @@ var Combat = class {
           e.scene.add(t));
         let s = new Ln(
             new br(0.93, 1, 56).rotateX(-Math.PI / 2),
-            new Tn({ color: 16728112, transparent: !0, opacity: 0, depthWrite: !1 }),
+            new Tn({
+              color: 16728112,
+              transparent: !0,
+              opacity: 0,
+              depthWrite: !1,
+            }),
           ),
           c = new Ln(
             new mr(0.93, 48).rotateX(-Math.PI / 2),
-            new Tn({ color: 16728112, transparent: !0, opacity: 0, depthWrite: !1 }),
+            new Tn({
+              color: 16728112,
+              transparent: !0,
+              opacity: 0,
+              depthWrite: !1,
+            }),
           );
         (s.add(c),
           (s.position.y = 0.05),
@@ -607,7 +821,13 @@ var Combat = class {
           (s.userData.noAO = !0),
           (s.renderOrder = 2),
           e.scene.add(s),
-          this.bombPool.push({ group: t, ring: s, fillDisc: c, spark: o, busy: !1 }));
+          this.bombPool.push({
+            group: t,
+            ring: s,
+            fillDisc: c,
+            spark: o,
+            busy: !1,
+          }));
       }
       let a = xu();
       ((this.boxGeo = new fr(0.92, 0.92, 0.92)),
@@ -654,7 +874,8 @@ var Combat = class {
       return (this.boxes.push(a), a);
     }
     boxAt(e, t) {
-      for (let n of this.boxes) if (n.alive && n.tx === e && n.ty === t) return n;
+      for (let n of this.boxes)
+        if (n.alive && n.tx === e && n.ty === t) return n;
       return null;
     }
     damageBox(e, t, n) {
@@ -783,7 +1004,9 @@ var Combat = class {
         }
       }
       for (let n of this.boxes)
-        n.alive && Math.hypot(n.x - e, n.z - t) < c + 0.4 && this.damageBox(n, l, r);
+        n.alive &&
+          Math.hypot(n.x - e, n.z - t) < c + 0.4 &&
+          this.damageBox(n, l, r);
       if (n.breaksWalls) {
         let n = Math.ceil(c),
           r = s.toTile(e),
@@ -797,7 +1020,13 @@ var Combat = class {
       }
       (a
         ? o.effects.slam(e, t, c, r.superColor)
-        : o.effects.explosion(e, t, c, n.big ? r.superColor : this.orange, !!n.big),
+        : o.effects.explosion(
+            e,
+            t,
+            c,
+            n.big ? r.superColor : this.orange,
+            !!n.big,
+          ),
         o.shake(n.big || a ? 0.55 : 0.24, e, t),
         o.audio.play(n.big || a ? `boomBig` : `boom`, e, t));
     }
@@ -825,10 +1054,19 @@ var Combat = class {
                   : (s.alive = !1),
               !s.alive)
             ) {
-              i.impact(s.x - s.dx * 0.12, yu, s.z - s.dz * 0.12, s.color, s.melee ? 3 : 6);
+              i.impact(
+                s.x - s.dx * 0.12,
+                yu,
+                s.z - s.dz * 0.12,
+                s.color,
+                s.melee ? 3 : 6,
+              );
               break;
             }
-          } else s.a.breaksWalls && n.tiles[o * 44 + r] === TileType.BUSH && this.breakTile(r, o);
+          } else
+            s.a.breaksWalls &&
+              n.tiles[o * 44 + r] === TileType.BUSH &&
+              this.breakTile(r, o);
           for (let e of t.brawlers) {
             if (!e.alive || e === s.owner || e.airborne) continue;
             let t = e.x - s.x,
@@ -845,7 +1083,9 @@ var Combat = class {
               break;
             }
           }
-          s.alive && s.travel >= s.range && ((s.alive = !1), i.impact(s.x, yu, s.z, s.color, 2));
+          s.alive &&
+            s.travel >= s.range &&
+            ((s.alive = !1), i.impact(s.x, yu, s.z, s.color, 2));
         }
         if (!s.alive) continue;
         let l = $c((s.range - s.travel) / 0.8, 0.35, 1),
@@ -853,25 +1093,35 @@ var Combat = class {
           d = s.radius * (s.melee ? 1 : 0.8) * l;
         (_u.set(0, Math.atan2(s.dx, s.dz), 0),
           mu.setFromEuler(_u),
-          pu.compose(hu.set(s.x, yu, s.z), mu, gu.set(d, d * (s.melee ? 0.7 : 1), u)),
+          pu.compose(
+            hu.set(s.x, yu, s.z),
+            mu,
+            gu.set(d, d * (s.melee ? 0.7 : 1), u),
+          ),
           this.bulletMesh.setMatrixAt(o, pu));
         let f = s.isSuper ? 3.6 : 2.8;
-        (this.bulletMesh.setColorAt(o, vu.copy(s.color).multiplyScalar(f * (s.melee ? 0.6 : 1))),
+        (this.bulletMesh.setColorAt(
+          o,
+          vu.copy(s.color).multiplyScalar(f * (s.melee ? 0.6 : 1)),
+        ),
           o++);
         let p = s.a.kind === `spread` ? 1.6 / s.a.pellets : s.melee ? 0.5 : 1;
         (r.addLight(s.x, yu, s.z, s.color, (s.isSuper ? 2.6 : 1.9) * p, 4.2),
           (s.trail -= e),
           s.trail <= 0 &&
-            ((s.trail = 0.03), i.trail(s.x, yu, s.z, s.color, s.radius * (s.melee ? 2.2 : 1.6))));
+            ((s.trail = 0.03),
+            i.trail(s.x, yu, s.z, s.color, s.radius * (s.melee ? 2.2 : 1.6))));
       }
       ((this.bullets = this.bullets.filter((e) => e.alive)),
         (this.bulletMesh.count = o),
         (this.bulletMesh.instanceMatrix.needsUpdate = !0),
-        this.bulletMesh.instanceColor && (this.bulletMesh.instanceColor.needsUpdate = !0));
+        this.bulletMesh.instanceColor &&
+          (this.bulletMesh.instanceColor.needsUpdate = !0));
       for (let n of this.bombs) {
         let a = n.slot,
           o = n.a;
-        if (n.landed) ((n.fuse -= e), (a.group.position.y = 0.2 * a.group.scale.x));
+        if (n.landed)
+          ((n.fuse -= e), (a.group.position.y = 0.2 * a.group.scale.x));
         else {
           n.t += e;
           let t = $c(n.t / o.flight, 0, 1),
@@ -889,7 +1139,8 @@ var Combat = class {
           (a.fillDisc.material.opacity = 0.1 + s * 0.22));
         let l = a.group.position;
         (r.addLight(l.x, l.y + 0.3, l.z, this.orange, 2.2 + c * 2.5, 4),
-          Math.random() < e * 40 && i.spark(l.x, l.y + 0.25 * a.group.scale.x, l.z, this.orange),
+          Math.random() < e * 40 &&
+            i.spark(l.x, l.y + 0.25 * a.group.scale.x, l.z, this.orange),
           n.landed &&
             n.fuse <= 0 &&
             ((n.done = !0),
@@ -923,13 +1174,18 @@ var Combat = class {
           !(a < 1))
         ) {
           for (let e of t.brawlers)
-            if (e.alive && !e.airborne && Math.hypot(e.x - n.x, e.z - n.z) < 0.78) {
+            if (
+              e.alive &&
+              !e.airborne &&
+              Math.hypot(e.x - n.x, e.z - n.z) < 0.78
+            ) {
               ((n.alive = !1),
                 e.addCube(),
                 t.scene.remove(n.mesh),
                 i.burst(n.x, 0.7, n.z, this.cubeLight, 12, 3.5),
                 i.flash(n.x, 0.8, n.z, this.cubeLight, 7, 5, 0.25),
-                (!e.hidden || e.isPlayer) && t.hud.floatText(e.x, 2, e.z, `POWER UP!`, `power`),
+                (!e.hidden || e.isPlayer) &&
+                  t.hud.floatText(e.x, 2, e.z, `POWER UP!`, `power`),
                 t.audio.play(`pickup`, n.x, n.z));
               break;
             }
@@ -941,7 +1197,9 @@ var Combat = class {
       let e = this.game.scene;
       ((this.bullets.length = 0), (this.bulletMesh.count = 0));
       for (let e of this.bombs)
-        ((e.slot.busy = !1), (e.slot.group.visible = !1), (e.slot.ring.visible = !1));
+        ((e.slot.busy = !1),
+          (e.slot.group.visible = !1),
+          (e.slot.ring.visible = !1));
       this.bombs.length = 0;
       for (let t of this.boxes) (t.alive && e.remove(t.mesh), t.mat.dispose());
       this.boxes.length = 0;
@@ -1055,7 +1313,9 @@ var Combat = class {
           (t[f * 3] += n[f * 3] * e),
           (t[f * 3 + 1] += n[f * 3 + 1] * e),
           (t[f * 3 + 2] += n[f * 3 + 2] * e),
-          t[f * 3 + 1] < 0.03 && d[f] > 0 && ((t[f * 3 + 1] = 0.03), (n[f * 3 + 1] *= -0.35)),
+          t[f * 3 + 1] < 0.03 &&
+            d[f] > 0 &&
+            ((t[f * 3 + 1] = 0.03), (n[f * 3 + 1] *= -0.35)),
           (a[f] = r[f] <= 0 ? 0 : o[f] + (s[f] - o[f]) * p),
           (c[f * 4 + 3] = l[f] * (1 - p * p)));
       }
@@ -1080,7 +1340,13 @@ function Mu() {
       n = 20 + Math.random() * 38;
     ((t.fillStyle = `rgba(8,5,3,0.35)`),
       t.beginPath(),
-      t.arc(64 + Math.cos(e) * n, 64 + Math.sin(e) * n, 2 + Math.random() * 5, 0, 7),
+      t.arc(
+        64 + Math.cos(e) * n,
+        64 + Math.sin(e) * n,
+        2 + Math.random() * 5,
+        0,
+        7,
+      ),
       t.fill());
   }
   return new cr(e);
@@ -1127,7 +1393,13 @@ var Effects = class {
       for (let e = 0; e < 18; e++) {
         let e = new Ln(
           r,
-          new Tn({ map: n, transparent: !0, opacity: 0, depthWrite: !1, color: 0 }),
+          new Tn({
+            map: n,
+            transparent: !0,
+            opacity: 0,
+            depthWrite: !1,
+            color: 0,
+          }),
         );
         ((e.visible = !1),
           (e.renderOrder = 1),
@@ -1140,7 +1412,13 @@ var Effects = class {
       for (let e = 0; e < 10; e++) {
         let e = new Ln(
           i,
-          new Tn({ color: 16777215, transparent: !0, opacity: 0, depthWrite: !1, blending: 2 }),
+          new Tn({
+            color: 16777215,
+            transparent: !0,
+            opacity: 0,
+            depthWrite: !1,
+            blending: 2,
+          }),
         );
         ((e.visible = !1),
           (e.renderOrder = 6),
@@ -1159,7 +1437,8 @@ var Effects = class {
         a = new Re();
       for (let e = 0; e < 90; e++)
         (n && n.count > 0
-          ? (n.getMatrixAt(Math.floor(Math.random() * n.count), a), Tu.setFromMatrixPosition(a))
+          ? (n.getMatrixAt(Math.floor(Math.random() * n.count), a),
+            Tu.setFromMatrixPosition(a))
           : Tu.set(Q(-18, 18), 0, Q(-18, 18)),
           (r[e * 3] = Tu.x + Q(-1.4, 1.4)),
           (r[e * 3 + 1] = Q(0.5, 1.9)),
@@ -1170,7 +1449,11 @@ var Effects = class {
       (o.setAttribute(`position`, new Zt(r, 3)),
         o.setAttribute(`aPhase`, new Zt(i, 1)),
         (this.fireflyMat = new jr({
-          uniforms: { uTime: { value: 0 }, uNight: { value: 0 }, uScale: { value: 600 } },
+          uniforms: {
+            uTime: { value: 0 },
+            uNight: { value: 0 },
+            uScale: { value: 600 },
+          },
           vertexShader: `
         attribute float aPhase;
         uniform float uTime; uniform float uScale;
@@ -1209,7 +1492,16 @@ var Effects = class {
         this.buildFireflies());
     }
     flash(e, t, n, r, i, a, o) {
-      this.flashes.push({ x: e, y: t, z: n, color: r, intensity: i, distance: a, t: 0, T: o });
+      this.flashes.push({
+        x: e,
+        y: t,
+        z: n,
+        color: r,
+        intensity: i,
+        distance: a,
+        t: 0,
+        T: o,
+      });
     }
     spark(e, t, n, r) {
       this.glow.emit(
@@ -1271,7 +1563,23 @@ var Effects = class {
           9,
         );
       }
-      this.glow.emit(e, t, n, 0, 0, 0, 0.1, 0.7, 0.2, r.r * 1.6, r.g * 1.6, r.b * 1.6, 0.8, 0, 0);
+      this.glow.emit(
+        e,
+        t,
+        n,
+        0,
+        0,
+        0,
+        0.1,
+        0.7,
+        0.2,
+        r.r * 1.6,
+        r.g * 1.6,
+        r.b * 1.6,
+        0.8,
+        0,
+        0,
+      );
     }
     burst(e, t, n, r, i, a) {
       for (let o = 0; o < i; o++) {
@@ -1762,7 +2070,11 @@ var Effects = class {
     depthAt(e, t) {
       let n = Math.abs(e) - (this.half - this.round),
         r = Math.abs(t) - (this.half - this.round);
-      return Math.hypot(Math.max(n, 0), Math.max(r, 0)) + Math.min(Math.max(n, r), 0) - this.round;
+      return (
+        Math.hypot(Math.max(n, 0), Math.max(r, 0)) +
+        Math.min(Math.max(n, r), 0) -
+        this.round
+      );
     }
     update(e, t) {
       let n = this.game,
@@ -1775,7 +2087,9 @@ var Effects = class {
         (this.layers.forEach((e, t) => {
           e.visible = this.active;
           let r = e.material.uniforms;
-          ((r.uTime.value = n.elapsed), (r.uHalf.value = this.half), (r.uRound.value = this.round));
+          ((r.uTime.value = n.elapsed),
+            (r.uHalf.value = this.half),
+            (r.uRound.value = this.round));
           let a = $c((n.lighting.ambientLevel - 0.36) / 0.64, 0, 1);
           ((r.uAmbient.value = el(0.2, 1, a)),
             (r.uGlow.value = (0.55 + n.lighting.night * 0.3) * i),
@@ -1827,7 +2141,8 @@ var Effects = class {
         ? !1
         : this.thrower && t < 8
           ? !0
-          : t < 2.5 || this.game.world.hasLineOfSight(this.b.x, this.b.z, e.x, e.z);
+          : t < 2.5 ||
+            this.game.world.hasLineOfSight(this.b.x, this.b.z, e.x, e.z);
     }
     seesBox(e) {
       let t = this.game.world.raycast(this.b.x, this.b.z, e.x, e.z);
@@ -1837,7 +2152,10 @@ var Effects = class {
       let { b: e, game: t } = this,
         n = t.world,
         r = t.gas,
-        i = t.state !== `menu` && t.matchTime < 14 && t.elapsed - e.lastCombat > 2.5,
+        i =
+          t.state !== `menu` &&
+          t.matchTime < 14 &&
+          t.elapsed - e.lastCombat > 2.5,
         a = null,
         o = i ? 3.5 : 1 / 0;
       for (let n of t.brawlers) {
@@ -1850,7 +2168,8 @@ var Effects = class {
             if (
               r > e.engage ||
               (t.brains.reduce(
-                (e, t) => e + (t !== this && t.b.alive && t.target === n ? 1 : 0),
+                (e, t) =>
+                  e + (t !== this && t.b.alive && t.target === n ? 1 : 0),
                 0,
               ) >= e.hunters &&
                 r > 2.5)
@@ -1860,7 +2179,8 @@ var Effects = class {
           r < o && this.canSee(n, r) && ((a = n), (o = r));
         }
       }
-      (a !== this.target && (this.reactT = Q(0.22, 0.5) * (2 - this.skill) * t.difficulty.react),
+      (a !== this.target &&
+        (this.reactT = Q(0.22, 0.5) * (2 - this.skill) * t.difficulty.react),
         (this.target = a));
       let s = r.active ? r.depthAt(e.x, e.z) : -99,
         c = null,
@@ -1904,10 +2224,13 @@ var Effects = class {
             if (
               ((l = `wander`),
               (this.wanderT -= 0.3),
-              !this.goal || this.wanderT <= 0 || sl(e.x, e.z, this.goal.x, this.goal.z) < 1.2)
+              !this.goal ||
+                this.wanderT <= 0 ||
+                sl(e.x, e.z, this.goal.x, this.goal.z) < 1.2)
             ) {
               let e = Math.max(2, Math.min(r.half - 4, 17));
-              ((this.wanderGoal = n.nearestOpen(Q(-e, e), Q(-e, e))), (this.wanderT = 7));
+              ((this.wanderGoal = n.nearestOpen(Q(-e, e), Q(-e, e))),
+                (this.wanderT = 7));
             }
             c = this.wanderGoal;
           }
@@ -1929,10 +2252,20 @@ var Effects = class {
         r = n.world,
         i = n.gas;
       ((this.goal = e), (this.repathT = 1.3));
-      let a = i.active ? (e, t) => (i.depthAt(r.center(e), r.center(t)) > -0.5 ? 6 : 0) : null;
-      ((this.path = r.findPath(r.toTile(t.x), r.toTile(t.z), r.toTile(e.x), r.toTile(e.z), a)),
+      let a = i.active
+        ? (e, t) => (i.depthAt(r.center(e), r.center(t)) > -0.5 ? 6 : 0)
+        : null;
+      ((this.path = r.findPath(
+        r.toTile(t.x),
+        r.toTile(t.z),
+        r.toTile(e.x),
+        r.toTile(e.z),
+        a,
+      )),
         (this.pathI = 0),
-        !this.path && this.box && ((this.box.skipBy = t.id), (this.box = null)));
+        !this.path &&
+          this.box &&
+          ((this.box.skipBy = t.id), (this.box = null)));
     }
     followPath() {
       let { b: e, game: t } = this;
@@ -1943,7 +2276,9 @@ var Effects = class {
         o = n.center(i);
       if (sl(e.x, e.z, a, o) < 0.36) {
         if ((this.pathI++, this.pathI >= this.path.length)) return [0, 0];
-        (([r, i] = this.path[this.pathI]), (a = n.center(r)), (o = n.center(i)));
+        (([r, i] = this.path[this.pathI]),
+          (a = n.center(r)),
+          (o = n.center(i)));
       }
       let s = sl(e.x, e.z, a, o) || 1;
       return [(a - e.x) / s, (o - e.z) / s];
@@ -1984,7 +2319,8 @@ var Effects = class {
       if (this.state === `fight` && s) {
         let n = sl(t.x, t.z, s.x, s.z) || 0.001;
         if (!(this.thrower || r.hasLineOfSight(t.x, t.z, s.x, s.z)))
-          ((!this.path || this.pathI >= this.path.length) && this.planTo({ x: s.x, z: s.z }),
+          ((!this.path || this.pathI >= this.path.length) &&
+            this.planTo({ x: s.x, z: s.z }),
             ([a, o] = this.followPath()));
         else {
           let r = (s.x - t.x) / n,
@@ -1993,13 +2329,16 @@ var Effects = class {
             l = 0;
           (n > c + 0.8 ? (l = 1) : n < c - 1.2 && (l = -1),
             (this.strafeT -= e),
-            this.strafeT <= 0 && ((this.strafeT = Q(0.5, 1.5)), (this.strafeDir *= -1)));
+            this.strafeT <= 0 &&
+              ((this.strafeT = Q(0.5, 1.5)), (this.strafeDir *= -1)));
           let u = c < 2.5 ? 0.25 : 0.85;
-          ((a = r * l + -i * this.strafeDir * u), (o = i * l + r * this.strafeDir * u));
+          ((a = r * l + -i * this.strafeDir * u),
+            (o = i * l + r * this.strafeDir * u));
         }
       } else
         this.state === `box` && this.box && this.box.alive
-          ? (sl(t.x, t.z, this.box.x, this.box.z) > Math.min(i.range * 0.7, 5) ||
+          ? (sl(t.x, t.z, this.box.x, this.box.z) >
+              Math.min(i.range * 0.7, 5) ||
               !this.seesBox(this.box)) &&
             ([a, o] = this.followPath())
           : ([a, o] = this.followPath());
@@ -2026,7 +2365,12 @@ var Effects = class {
           a = this.thrower ? e < i.range : r.hasLineOfSight(t.x, t.z, s.x, s.z);
         if (a && t.superReady && this.shootT <= 0) {
           let n = t.def.super,
-            r = n.kind === `spread` ? 5 : n.kind === `leap` ? n.range : n.range * 0.9,
+            r =
+              n.kind === `spread`
+                ? 5
+                : n.kind === `leap`
+                  ? n.range
+                  : n.range * 0.9,
             i = n.kind === `leap` ? 2.5 : 0;
           if (e < r && e > i && Math.random() < 0.6) {
             let e = this.aimAt(s.x, s.z, s.vel.x, s.vel.y, n);
@@ -2037,7 +2381,8 @@ var Effects = class {
           let e = this.aimAt(s.x, s.z, s.vel.x, s.vel.y, i);
           t.attack(e.dx, e.dz, e.x, e.z) &&
             (this.shootT =
-              (Q(0.45, 1) + (t.ammo < 1 ? 0.4 : 0)) * (s.isPlayer ? n.difficulty.cadence : 1));
+              (Q(0.45, 1) + (t.ammo < 1 ? 0.4 : 0)) *
+              (s.isPlayer ? n.difficulty.cadence : 1));
         }
       } else if (
         this.state === `box` &&
@@ -2050,7 +2395,8 @@ var Effects = class {
         if (e < i.range * 0.85 && (this.thrower || this.seesBox(this.box))) {
           let n = (this.box.x - t.x) / (e || 1),
             r = (this.box.z - t.z) / (e || 1);
-          t.attack(n, r, this.box.x, this.box.z) && (this.shootT = Q(0.35, 0.7));
+          t.attack(n, r, this.box.x, this.box.z) &&
+            (this.shootT = Q(0.35, 0.7));
         }
       }
     }
@@ -2064,7 +2410,7 @@ var Effects = class {
     t: `KeyT`,
     p: `KeyP`,
     m: `KeyM`,
-    ' ': `Space`,
+    " ": `Space`,
     spacebar: `Space`,
     escape: `Escape`,
     arrowleft: `ArrowLeft`,
@@ -2087,17 +2433,13 @@ var Effects = class {
         (this.onTouchMode = null),
         (this.lastTouch = -1e9),
         (this.sticks = { move: Wu(), aim: Wu(), super: Wu() }),
-        (this.shots = []),
-        (this.listeners = []));
+        (this.shots = []));
       let n = new Set([`Space`, `KeyE`]);
-      const add = (target, type, handler) => {
-        target.addEventListener(type, handler);
-        this.listeners.push([target, type, handler]);
-      };
-      (add(window, `keydown`, (e) => {
+      (window.addEventListener(`keydown`, (e) => {
         if (
           e.repeat ||
-          (e.target && (e.target.tagName === `INPUT` || e.target.tagName === `SELECT`))
+          (e.target &&
+            (e.target.tagName === `INPUT` || e.target.tagName === `SELECT`))
         )
           return;
         let t = Uu(e);
@@ -2105,12 +2447,14 @@ var Effects = class {
           n.has(t) && ((this.superHeld = !0), e.preventDefault()),
           t.startsWith(`Arrow`) && e.preventDefault());
       }),
-        add(window, `keyup`, (e) => {
+        window.addEventListener(`keyup`, (e) => {
           let t = Uu(e);
           (this.keys.delete(t),
-            n.has(t) && this.superHeld && ((this.superHeld = !1), (this.superReleased = !0)));
+            n.has(t) &&
+              this.superHeld &&
+              ((this.superHeld = !1), (this.superReleased = !0)));
         }),
-        add(window, `blur`, () => {
+        window.addEventListener(`blur`, () => {
           (this.keys.clear(), (this.fire = !1), (this.superHeld = !1));
           for (let e of Object.values(this.sticks)) this.resetStick(e);
         }));
@@ -2119,24 +2463,27 @@ var Effects = class {
           ((this.ndcX = (e.clientX / window.innerWidth) * 2 - 1),
             (this.ndcY = -(e.clientY / window.innerHeight) * 2 + 1));
         };
-      (add(window, `mousemove`, (e) => {
+      (window.addEventListener(`mousemove`, (e) => {
         r() || i(e);
       }),
-        add(e, `mousedown`, (e) => {
+        e.addEventListener(`mousedown`, (e) => {
           r() ||
             (this.touchMode && this.setTouchMode(!1),
             i(e),
             e.button === 0 && (this.fire = !0),
             e.button === 2 && (this.superHeld = !0));
         }),
-        add(window, `mouseup`, (e) => {
+        window.addEventListener(`mouseup`, (e) => {
           (e.button === 0 && (this.fire = !1),
-            e.button === 2 && this.superHeld && ((this.superHeld = !1), (this.superReleased = !0)));
+            e.button === 2 &&
+              this.superHeld &&
+              ((this.superHeld = !1), (this.superReleased = !0)));
         }),
-        add(e, `contextmenu`, (e) => e.preventDefault()));
+        e.addEventListener(`contextmenu`, (e) => e.preventDefault()));
       let a = (e, t) => {
           if (e.pointerType !== `touch`) return;
-          ((this.lastTouch = performance.now()), this.touchMode || this.setTouchMode(!0));
+          ((this.lastTouch = performance.now()),
+            this.touchMode || this.setTouchMode(!0));
           let n =
             t === `super`
               ? this.sticks.super
@@ -2152,13 +2499,21 @@ var Effects = class {
             e.preventDefault());
         },
         o = (e) => Object.values(this.sticks).find((t) => t.id === e.pointerId);
-      (add(e, `pointerdown`, (e) => a(e, `field`)),
+      (e.addEventListener(`pointerdown`, (e) => a(e, `field`)),
         t &&
-          (add(t, `pointerdown`, (e) => a(e, `super`)),
-          add(t, `click`, () => {
-            r() || this.shots.push({ kind: `super`, x: 0, y: 0, mag: 0, tap: !0, cancelled: !1 });
+          (t.addEventListener(`pointerdown`, (e) => a(e, `super`)),
+          t.addEventListener(`click`, () => {
+            r() ||
+              this.shots.push({
+                kind: `super`,
+                x: 0,
+                y: 0,
+                mag: 0,
+                tap: !0,
+                cancelled: !1,
+              });
           })),
-        add(window, `pointermove`, (e) => {
+        window.addEventListener(`pointermove`, (e) => {
           if (e.pointerType !== `touch`) return;
           this.lastTouch = performance.now();
           let t = o(e);
@@ -2189,12 +2544,8 @@ var Effects = class {
             }),
           this.resetStick(t));
       };
-      (add(window, `pointerup`, s), add(window, `pointercancel`, s));
-    }
-    dispose() {
-      for (const [target, type, handler] of this.listeners)
-        target.removeEventListener(type, handler);
-      this.listeners.length = 0;
+      (window.addEventListener(`pointerup`, s),
+        window.addEventListener(`pointercancel`, s));
     }
     resetStick(e) {
       ((e.id = null), (e.x = e.y = e.mag = 0), (e.moved = !1));
@@ -2239,7 +2590,8 @@ var Effects = class {
       n = Math.floor((e - Math.floor(e)) * 60);
     return `${String(t).padStart(2, `0`)}:${String(n).padStart(2, `0`)}`;
   },
-  Ju = (e) => (e >= 19.4 || e < 5.6 ? `🌙` : e >= 17.2 || e < 7.2 ? `🌇` : `☀️`),
+  Ju = (e) =>
+    e >= 19.4 || e < 5.6 ? `🌙` : e >= 17.2 || e < 7.2 ? `🌇` : `☀️`,
   HUD = class {
     constructor(e) {
       ((this.game = e),
@@ -2272,7 +2624,9 @@ var Effects = class {
         this.buildSettings());
     }
     setTouchMode(e) {
-      ((this.touch = e), document.body.classList.toggle(`touch`, e), (this.lastSuper = -1));
+      ((this.touch = e),
+        document.body.classList.toggle(`touch`, e),
+        (this.lastSuper = -1));
     }
     updateSticks() {
       if (!this.touch) return;
@@ -2322,7 +2676,9 @@ var Effects = class {
         <h2>${r.name}</h2><div class="role">${r.role}</div><p>${r.blurb}</p>
         ${n(`HEALTH`, r.hp / 6200)}${n(`RANGE`, s)}${n(`DAMAGE`, c)}`;
         let l = () => {
-          (this.game.audio.unlock(), this.game.audio.play(`click`), this.select(r.id));
+          (this.game.audio.unlock(),
+            this.game.audio.play(`click`),
+            this.select(r.id));
         };
         (i.addEventListener(`click`, l),
           i.addEventListener(`keydown`, (e) => {
@@ -2333,14 +2689,17 @@ var Effects = class {
       ($(`play`).addEventListener(`click`, () => {
         (this.game.audio.unlock(), this.game.startMatch(this.selected));
       }),
-        $(`again`).addEventListener(`click`, () => this.game.startMatch(this.selected)),
+        $(`again`).addEventListener(`click`, () =>
+          this.game.startMatch(this.selected),
+        ),
         $(`to-menu`).addEventListener(`click`, () => this.game.toMenu()));
     }
     select(e) {
       ((this.selected = e),
         document.querySelectorAll(`#cards .card`).forEach((t) => {
           let n = t.dataset.id === e;
-          (t.classList.toggle(`on`, n), t.setAttribute(`aria-pressed`, String(n)));
+          (t.classList.toggle(`on`, n),
+            t.setAttribute(`aria-pressed`, String(n)));
         }));
     }
     showMenu(e) {
@@ -2380,22 +2739,34 @@ var Effects = class {
           i.addEventListener(`click`, () => e.setDifficulty(t)),
           r.appendChild(i));
       }
-      ($(`auto-time`).addEventListener(`change`, (t) => e.setAutoTime(t.target.checked)),
+      ($(`auto-time`).addEventListener(`change`, (t) =>
+        e.setAutoTime(t.target.checked),
+      ),
         $(`time-slider`).addEventListener(`input`, (t) => {
           (e.setAutoTime(!1), e.lighting.setTime(parseFloat(t.target.value)));
         }),
-        $(`tog-ao`).addEventListener(`change`, (t) => e.setToggle(`ao`, t.target.checked)),
-        $(`tog-bloom`).addEventListener(`change`, (t) => e.setToggle(`bloom`, t.target.checked)),
-        $(`tog-mute`).addEventListener(`change`, (t) => e.setMuted(t.target.checked)));
+        $(`tog-ao`).addEventListener(`change`, (t) =>
+          e.setToggle(`ao`, t.target.checked),
+        ),
+        $(`tog-bloom`).addEventListener(`change`, (t) =>
+          e.setToggle(`bloom`, t.target.checked),
+        ),
+        $(`tog-mute`).addEventListener(`change`, (t) =>
+          e.setMuted(t.target.checked),
+        ));
     }
     syncSettings() {
       let e = this.game;
       (document
         .querySelectorAll(`#quality-seg button`)
-        .forEach((t) => t.classList.toggle(`on`, t.dataset.q === e.pipeline.qualityName)),
+        .forEach((t) =>
+          t.classList.toggle(`on`, t.dataset.q === e.pipeline.qualityName),
+        ),
         document
           .querySelectorAll(`#difficulty-seg button`)
-          .forEach((t) => t.classList.toggle(`on`, t.dataset.d === e.difficultyName)),
+          .forEach((t) =>
+            t.classList.toggle(`on`, t.dataset.d === e.difficultyName),
+          ),
         ($(`auto-time`).checked = e.autoTime),
         ($(`tog-ao`).checked = e.pipeline.toggles.ao),
         ($(`tog-ao`).disabled = !e.pipeline.quality.ao),
@@ -2453,7 +2824,8 @@ var Effects = class {
     feed(e) {
       let t = $(`feed`),
         n = document.createElement(`div`);
-      for (n.innerHTML = e, t.appendChild(n); t.children.length > 4;) t.firstChild.remove();
+      for (n.innerHTML = e, t.appendChild(n); t.children.length > 4;)
+        t.firstChild.remove();
       setTimeout(() => n.remove(), 6e3);
     }
     banner(e, t = 1, n = !1) {
@@ -2487,7 +2859,8 @@ var Effects = class {
         let r = e.alive && e.root.visible,
           i = r ? this.project(e.x, e.root.position.y + 1.72, e.z, n) : null,
           a = r && i.on;
-        if ((a !== t.shown && ((t.root.hidden = !a), (t.shown = a)), !a)) continue;
+        if ((a !== t.shown && ((t.root.hidden = !a), (t.shown = a)), !a))
+          continue;
         t.root.style.transform = `translate3d(${i.x.toFixed(1)}px, ${(i.y - 44).toFixed(1)}px, 0)`;
         let o = Math.max(0, Math.ceil(e.hp));
         if (
@@ -2497,11 +2870,16 @@ var Effects = class {
             (t.fill.style.transform = `scaleX(${$c(o / e.maxHp, 0, 1).toFixed(3)})`),
             (t.hp.textContent = o)),
           e.cubes !== t.lastCubes &&
-            ((t.lastCubes = e.cubes), (t.cubes.textContent = e.cubes > 0 ? `⚡${e.cubes}` : ``)),
+            ((t.lastCubes = e.cubes),
+            (t.cubes.textContent = e.cubes > 0 ? `⚡${e.cubes}` : ``)),
           e.isPlayer)
         )
           for (let n = 0; n < 3; n++) {
-            let r = $c(e.ammo - n + (Math.floor(e.ammo) === n ? e.reloadT : 0), 0, 1),
+            let r = $c(
+                e.ammo - n + (Math.floor(e.ammo) === n ? e.reloadT : 0),
+                0,
+                1,
+              ),
               i = Math.round(r * 40);
             i !== t.lastAmmo[n] &&
               ((t.lastAmmo[n] = i),
@@ -2545,19 +2923,24 @@ var Effects = class {
         }
         let r = 1 - t.life / 0.85,
           i = this.project(t.x, t.y + r * 0.9, t.z, n),
-          a = r < 0.15 ? 0.6 + (r / 0.15) * 0.6 : 1.2 - Math.min(1, (r - 0.15) * 1.5) * 0.2;
+          a =
+            r < 0.15
+              ? 0.6 + (r / 0.15) * 0.6
+              : 1.2 - Math.min(1, (r - 0.15) * 1.5) * 0.2;
         ((t.el.style.transform = `translate3d(${(i.x + t.drift * r).toFixed(1)}px, ${i.y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${a.toFixed(2)})`),
           (t.el.style.opacity = r > 0.7 ? ((1 - r) / 0.3).toFixed(2) : `1`));
       }
       let r = t.brawlers.reduce((e, t) => e + +!!t.alive, 0);
       r !== this.lastLeft &&
-        ((this.lastLeft = r), ($(`left-count`).innerHTML = `BRAWLERS LEFT <b>${r}</b>`));
+        ((this.lastLeft = r),
+        ($(`left-count`).innerHTML = `BRAWLERS LEFT <b>${r}</b>`));
       let i = `${Ju(t.lighting.time)} ${qu(t.lighting.time)}`;
       i !== this.lastClock &&
         ((this.lastClock = i),
         ($(`clock`).textContent = i),
         ($(`time-label`).textContent = qu(t.lighting.time)),
-        document.activeElement !== $(`time-slider`) && ($(`time-slider`).value = t.lighting.time));
+        document.activeElement !== $(`time-slider`) &&
+          ($(`time-slider`).value = t.lighting.time));
       let a = t.player,
         o = a ? Math.round(a.superCharge * 100) : 0;
       if (o !== this.lastSuper) {
@@ -2570,7 +2953,8 @@ var Effects = class {
       }
       (this.updateSticks(),
         this.bannerT > 0 &&
-          ((this.bannerT -= e), this.bannerT <= 0 && $(`banner`).classList.remove(`show`)),
+          ((this.bannerT -= e),
+          this.bannerT <= 0 && $(`banner`).classList.remove(`show`)),
         (this.hurt = Math.max(0, this.hurt - e * 2.2)),
         ($(`hurt`).style.opacity = this.hurt.toFixed(2)));
       let s = a && a.alive && t.gas.active && t.gas.depthAt(a.x, a.z) > 0.35;
@@ -2587,7 +2971,9 @@ var Effects = class {
         let e = { render: t.frameStats },
           n = t.lighting,
           r = n.lampSlots.filter((e) => e.intensity > 0.01).length,
-          i = n.lampSlots.filter((e) => e.castShadow && e.shadow.autoUpdate).length;
+          i = n.lampSlots.filter(
+            (e) => e.castShadow && e.shadow.autoUpdate,
+          ).length;
         $(`stats`).textContent =
           `${this.fps} fps   ${e.render.calls} draws   ${(e.render.triangles / 1e3).toFixed(0)}k tris\nsun shadow ${n.mapSize}px over ${(n.shadowRadius * 2).toFixed(0)}m  (${t.pipeline.usingPCSS ? `PCSS` : `PCF`})\nlamps lit ${r}  casting ${i}   pool lights ${n.pool.filter((e) => e.intensity > 0).length}/${n.pool.length}\n` +
           (t.userPickedQuality
@@ -2626,7 +3012,8 @@ var Effects = class {
       for (let e = 0; e < n; e++) r[e] = Math.random() * 2 - 1;
     }
     setMuted(e) {
-      ((this.muted = e), this.master && (this.master.gain.value = e ? 0 : 0.34));
+      ((this.muted = e),
+        this.master && (this.master.gain.value = e ? 0 : 0.34));
     }
     tone(e, t, n, r, i, a = 0) {
       let o = this.ctx,
@@ -2647,7 +3034,8 @@ var Effects = class {
       let s = this.ctx,
         c = s.currentTime + this.timeOffset + o,
         l = s.createBufferSource();
-      ((l.buffer = this.noiseBuffer), (l.playbackRate.value = 0.8 + Math.random() * 0.4));
+      ((l.buffer = this.noiseBuffer),
+        (l.playbackRate.value = 0.8 + Math.random() * 0.4));
       let u = s.createBiquadFilter();
       ((u.type = e),
         (u.Q.value = a),
@@ -2722,7 +3110,9 @@ var Effects = class {
             );
             break;
           case `ready`:
-            [784, 1046, 1568].forEach((e, t) => this.tone(`sine`, e, e, 0.22, 0.24, t * 0.08));
+            [784, 1046, 1568].forEach((e, t) =>
+              this.tone(`sine`, e, e, 0.22, 0.24, t * 0.08),
+            );
             break;
           case `super`:
             (this.noise(`bandpass`, 300, 3200, 0.3, 0.5 * t, 1.5),
@@ -2743,7 +3133,8 @@ var Effects = class {
             this.tone(`square`, 520, 520, 0.12, 0.2);
             break;
           case `go`:
-            (this.tone(`square`, 880, 1320, 0.3, 0.24), this.tone(`sine`, 440, 660, 0.3, 0.2));
+            (this.tone(`square`, 880, 1320, 0.3, 0.24),
+              this.tone(`sine`, 440, 660, 0.3, 0.2));
             break;
           case `win`:
             [523, 659, 784, 1046, 1318].forEach((e, t) =>
@@ -2825,5 +3216,5 @@ export {
   wu,
   xu,
   yu,
-  zu
+  zu,
 };

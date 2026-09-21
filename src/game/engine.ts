@@ -1,13 +1,74 @@
-import { $c, BOT_NAMES, BRAWLER_DEFS, COLLISION_RADIUS, DIFFICULTIES, GAME_CONFIG, H, Ln, Q, QUALITY_PRESETS, RenderPipeline, Tn, a, ao, br, c, e, el, hi, i, kl, l, mr, n, nl, o, pn, r, s, sl, t, tl, u, ut, vt, x, y, yr, z } from './shared.js';
-import { $u, Bot, Brawler, CAMERA_PITCH, Combat, Effects, FOV, GameAudio, GasRing, HUD, Input, SETTINGS_KEY, TIME_PRESETS, Uu, ad, id, nd, od, rd, sd } from './gameplay.js';
+// @ts-nocheck
+import {
+  $c,
+  BOT_NAMES,
+  BRAWLER_DEFS,
+  COLLISION_RADIUS,
+  DIFFICULTIES,
+  GAME_CONFIG,
+  H,
+  Ln,
+  Q,
+  QUALITY_PRESETS,
+  RenderPipeline,
+  Tn,
+  a,
+  ao,
+  br,
+  c,
+  e,
+  el,
+  hi,
+  i,
+  kl,
+  l,
+  mr,
+  n,
+  nl,
+  o,
+  pn,
+  r,
+  s,
+  sl,
+  t,
+  tl,
+  u,
+  ut,
+  vt,
+  x,
+  y,
+  yr,
+  z
+} from './shared.js';
+import {
+  $u,
+  Bot,
+  Brawler,
+  CAMERA_PITCH,
+  Combat,
+  Effects,
+  FOV,
+  GameAudio,
+  GasRing,
+  HUD,
+  Input,
+  SETTINGS_KEY,
+  TIME_PRESETS,
+  Uu,
+  ad,
+  id,
+  nd,
+  od,
+  rd,
+  sd
+} from './gameplay.js';
 import { World } from './world.js';
-
-function cd(e) {
-  for (let t = e.length - 1; t > 0; t--) {
-    let n = Math.floor(Math.random() * (t + 1));
-    [e[t], e[n]] = [e[n], e[t]];
+function cd(items) {
+  for (let index = items.length - 1; index > 0; index--) {
+    let randomIndex = Math.floor(Math.random() * (index + 1));
+    [items[index], items[randomIndex]] = [items[randomIndex], items[index]];
   }
-  return e;
+  return items;
 }
 var Game = class {
   constructor(e = {}) {
@@ -20,19 +81,30 @@ var Game = class {
     }
     ((this.saved = t),
       (this.scene = new vt()),
-      (this.camera = new hi(FOV, window.innerWidth / window.innerHeight, 1, 260)),
+      (this.camera = new hi(
+        FOV,
+        window.innerWidth / window.innerHeight,
+        1,
+        260
+      )),
       (this.pipeline = new RenderPipeline(
         document.getElementById(`game`),
         this.scene,
-        this.camera,
+        this.camera
       )),
       (this.pipeline.renderer.info.autoReset = !1),
       t.ao === !1 && (this.pipeline.toggles.ao = !1),
       t.bloom === !1 && (this.pipeline.toggles.bloom = !1));
-    let n = !!(window.matchMedia && window.matchMedia(`(pointer: coarse)`).matches),
+    let n = !!(
+        window.matchMedia && window.matchMedia(`(pointer: coarse)`).matches
+      ),
       r = this.params.get(`q`) || t.quality || (n ? `medium` : `high`);
     ((this.userPickedQuality = !!(this.params.get(`q`) || t.quality)),
-      (this.pipeline.superSample = $c(parseFloat(this.params.get(`ss`)) || 0, 0, 3)),
+      (this.pipeline.superSample = $c(
+        parseFloat(this.params.get(`ss`)) || 0,
+        0,
+        3
+      )),
       this.pipeline.setQuality(QUALITY_PRESETS[r] ? r : `high`));
     let i = this.params.get(`bots`) || t.difficulty;
     ((this.difficultyName = DIFFICULTIES[i] ? i : `normal`),
@@ -41,7 +113,10 @@ var Game = class {
       this.lighting.applyQuality(this.pipeline.quality),
       (this.audio = new GameAudio()),
       (this.audio.muted = !!t.muted),
-      (this.input = new Input(this.pipeline.renderer.domElement, document.getElementById(`super`))),
+      (this.input = new Input(
+        this.pipeline.renderer.domElement,
+        document.getElementById(`super`)
+      )),
       (this.input.onTouchMode = (e) => this.hud.setTouchMode(e)),
       (this.elapsed = 0),
       (this.matchTime = 0),
@@ -65,8 +140,15 @@ var Game = class {
       (this.simSteps = $c(parseInt(this.params.get(`speed`), 10) || 1, 1, 16)),
       (this.timePreset = 0),
       (this.autoTime = t.autoTime !== !1),
-      (this.perf = { t: 0, frames: 0, done: !1 }),
-      (this.frameStats = { calls: 0, triangles: 0 }));
+      (this.perf = {
+        t: 0,
+        frames: 0,
+        done: !1
+      }),
+      (this.frameStats = {
+        calls: 0,
+        triangles: 0
+      }));
     let a = parseInt(this.params.get(`seed`), 10);
     ((this.nextSeed = Number.isFinite(a) ? a : (Math.random() * 1e9) | 0),
       (this.fixedSeed = Number.isFinite(a) ? a : null),
@@ -81,32 +163,33 @@ var Game = class {
       e.selected && BRAWLER_DEFS[e.selected] && this.hud.select(e.selected),
       n && this.input.setTouchMode(!0));
     let o = parseFloat(this.params.get(`time`));
-    if (Number.isFinite(o)) {
-      this.autoTime = false;
-      this.lighting.setTime(o);
-    } else if (!this.autoTime && Number.isFinite(t.time)) {
-      this.lighting.setTime(t.time);
-    }
-    this.onKeyDown = (e) => {
-      if (e.repeat) return;
-      const code = Uu(e);
-      if (code === `KeyT`) this.cycleTime();
-      if (code === `KeyM`) this.setMuted(!this.audio.muted);
-      if (code === `KeyP` && this.state !== `menu`) {
-        this.paused = !this.paused;
-        this.hud.toast(this.paused ? `Paused - press P to resume` : `Resumed`);
-      }
-      if (code === `Escape`) document.getElementById(`settings`).classList.remove(`open`);
-    };
-    window.addEventListener(`keydown`, this.onKeyDown);
-    this.hud.syncSettings();
-    this.toMenu();
+    (Number.isFinite(o)
+      ? ((this.autoTime = !1), this.lighting.setTime(o))
+      : !this.autoTime &&
+        Number.isFinite(t.time) &&
+        this.lighting.setTime(t.time),
+      window.addEventListener(`keydown`, (e) => {
+        if (e.repeat) return;
+        let t = Uu(e);
+        (t === `KeyT` && this.cycleTime(),
+          t === `KeyM` && this.setMuted(!this.audio.muted),
+          t === `KeyP` &&
+            this.state !== `menu` &&
+            ((this.paused = !this.paused),
+            this.hud.toast(
+              this.paused ? `Paused - press P to resume` : `Resumed`
+            )),
+          t === `Escape` &&
+            document.getElementById(`settings`).classList.remove(`open`));
+      }),
+      this.hud.syncSettings(),
+      this.toMenu());
     let s = this.params.get(`auto`);
     (s && BRAWLER_DEFS[s] && this.startMatch(s),
       (this.last = performance.now()),
       (this.frame = this.frame.bind(this)),
       (this.warmup = 3),
-      this.frameRequest = requestAnimationFrame(this.frame));
+      (this.frameRequest = requestAnimationFrame(this.frame)));
   }
   dispose() {
     this.disposed = true;
@@ -127,7 +210,7 @@ var Game = class {
       muted: this.audio.muted,
       autoTime: this.autoTime,
       time: this.lighting.time,
-      difficulty: this.difficultyName,
+      difficulty: this.difficultyName
     };
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(e));
@@ -160,11 +243,12 @@ var Game = class {
     this.timePreset = (this.timePreset + 1) % TIME_PRESETS.length;
     let e = TIME_PRESETS[this.timePreset];
     e === null
-      ? (this.setAutoTime(!0), this.hud.toast(`Time of day: following the match`))
+      ? (this.setAutoTime(!0),
+        this.hud.toast(`Time of day: following the match`))
       : (this.setAutoTime(!1),
         this.lighting.setTime(e),
         this.hud.toast(
-          `Time of day locked to ${String(Math.floor(e)).padStart(2, `0`)}:${String(Math.round((e % 1) * 60)).padStart(2, `0`)}`,
+          `Time of day locked to ${String(Math.floor(e)).padStart(2, `0`)}:${String(Math.round((e % 1) * 60)).padStart(2, `0`)}`
         ));
   }
   clearEntities() {
@@ -179,7 +263,8 @@ var Game = class {
   }
   newWorld() {
     (this.world.dispose(),
-      (this.nextSeed = this.fixedSeed === null ? (Math.random() * 1e9) | 0 : this.fixedSeed),
+      (this.nextSeed =
+        this.fixedSeed === null ? (Math.random() * 1e9) | 0 : this.fixedSeed),
       (this.fixedSeed = null),
       (this.world = new World(this.scene, this.nextSeed, this.maxAniso)),
       this.lighting.setLamps(this.world.lanterns, this.world.lampGlass),
@@ -201,7 +286,7 @@ var Game = class {
           name: c ? `YOU` : r[o % r.length],
           x: t.center(a),
           z: t.center(s),
-          hueShift: c ? 0 : Q(-0.07, 0.07),
+          hueShift: c ? 0 : Q(-0.07, 0.07)
         });
       (this.brawlers.push(u),
         this.hud.addBrawler(u),
@@ -211,7 +296,10 @@ var Game = class {
     ((t.aoDirty = !0), (t.aoTimer = 0));
   }
   toMenu() {
-    ((this.state = `menu`), this.hud.showMenu(!0), this.spawnRoster(null), (this.attractT = 0));
+    ((this.state = `menu`),
+      this.hud.showMenu(!0),
+      this.spawnRoster(null),
+      (this.attractT = 0));
   }
   startMatch(e) {
     (this.audio.unlock(),
@@ -250,9 +338,11 @@ var Game = class {
     if (
       (t && t !== e
         ? this.hud.feed(
-            `<span class="k ${r(t)}">${t.name}</span> ⚔ <span class="v ${r(e)}">${e.name}</span>`,
+            `<span class="k ${r(t)}">${t.name}</span> ⚔ <span class="v ${r(e)}">${e.name}</span>`
           )
-        : this.hud.feed(`<span class="v ${r(e)}">${e.name}</span> ☠ poison gas`),
+        : this.hud.feed(
+            `<span class="v ${r(e)}">${e.name}</span> ☠ poison gas`
+          ),
       this.state !== `playing`)
     )
       return;
@@ -260,12 +350,20 @@ var Game = class {
     e === i
       ? ((this.state = `ended`),
         (this.spectate = t && t.alive ? t : null),
-        (this.pendingResult = { t: 1.5, won: !1, rank: e.rank }),
+        (this.pendingResult = {
+          t: 1.5,
+          won: !1,
+          rank: e.rank
+        }),
         this.audio.play(`lose`))
       : n === 1 && i && i.alive
         ? ((this.state = `ended`),
           (i.rank = 1),
-          (this.pendingResult = { t: 1.3, won: !0, rank: 1 }),
+          (this.pendingResult = {
+            t: 1.3,
+            won: !0,
+            rank: 1
+          }),
           this.audio.play(`win`))
         : n === 2 && i && i.alive && this.hud.banner(`SHOWDOWN!`, 1.5, !0);
   }
@@ -279,7 +377,8 @@ var Game = class {
       let t = this.hud.overheads.get(e.id);
       (t && t.root.remove(), this.hud.overheads.delete(e.id), e.dispose());
     }
-    ((this.brawlers = this.brawlers.filter((e) => e.isPlayer)), (this.brains = []));
+    ((this.brawlers = this.brawlers.filter((e) => e.isPlayer)),
+      (this.brains = []));
   }
   spawnBot(e, t, n, r, i = !1) {
     let a = BRAWLER_DEFS[e] || BRAWLER_DEFS.dusty,
@@ -288,7 +387,7 @@ var Game = class {
         name: r || BOT_NAMES[this.brawlers.length % BOT_NAMES.length],
         x: t,
         z: n,
-        hueShift: Q(-0.06, 0.06),
+        hueShift: Q(-0.06, 0.06)
       });
     return (
       this.brawlers.push(o),
@@ -298,12 +397,21 @@ var Game = class {
     );
   }
   buildAimGuide() {
-    let e = () => new Tn({ color: 16777215, transparent: !0, opacity: 0.18, depthWrite: !1 }),
+    let e = () =>
+        new Tn({
+          color: 16777215,
+          transparent: !0,
+          opacity: 0.18,
+          depthWrite: !1
+        }),
       t = new ut();
     ((t.userData.noAO = !0),
       (t.position.y = 0.06),
       (t.visible = !1),
-      (this.guideRect = new Ln(new yr(1, 1).rotateX(-Math.PI / 2).translate(0.5, 0, 0), e())),
+      (this.guideRect = new Ln(
+        new yr(1, 1).rotateX(-Math.PI / 2).translate(0.5, 0, 0),
+        e()
+      )),
       (this.guideSector = new Ln(new pn(), e())),
       (this.guideCircle = new Ln(new mr(1, 48).rotateX(-Math.PI / 2), e())),
       (this.guideRing = new Ln(new br(0.93, 1, 48).rotateX(-Math.PI / 2), e())),
@@ -318,9 +426,12 @@ var Game = class {
       let n = e[t];
       n.kind === `spread` &&
         (this.sectorGeos[t] && this.sectorGeos[t].dispose(),
-        (this.sectorGeos[t] = new mr(1, 28, -n.spread / 2 - 0.07, n.spread + 0.14).rotateX(
-          -Math.PI / 2,
-        )));
+        (this.sectorGeos[t] = new mr(
+          1,
+          28,
+          -n.spread / 2 - 0.07,
+          n.spread + 0.14
+        ).rotateX(-Math.PI / 2)));
     }
   }
   updateGuide(e, t, n, r, i, a) {
@@ -332,7 +443,10 @@ var Game = class {
     let c = a ? 16765498 : 16777215,
       l = a ? 0.34 : 0.17;
     if (
-      ((this.guideRect.visible = this.guideSector.visible = this.guideCircle.visible = !1),
+      ((this.guideRect.visible =
+        this.guideSector.visible =
+        this.guideCircle.visible =
+          !1),
       e.kind === `spread`)
     )
       ((this.guideSector.geometry = this.sectorGeos[t]),
@@ -343,7 +457,9 @@ var Game = class {
     else if (e.kind === `burst` || e.kind === `melee`) {
       let t = e.range,
         i = this.world.raycast(o.x, o.z, o.x + n * e.range, o.z + r * e.range);
-      (i && !(e.breaksWalls && this.world.isBreakable(i.tx, i.ty)) && (t = Math.max(0.6, i.dist)),
+      (i &&
+        !(e.breaksWalls && this.world.isBreakable(i.tx, i.ty)) &&
+        (t = Math.max(0.6, i.dist)),
         this.guideRect.scale.set(t, 1, Math.max(0.42, e.radius * 2.6)),
         (this.guideRect.visible = !0),
         this.guideRect.material.color.set(c),
@@ -364,8 +480,14 @@ var Game = class {
   }
   controlPlayer() {
     let e = this.player;
-    if (!e || !e.alive || (this.state !== `playing` && this.state !== `countdown`)) {
-      ((this.guide.visible = !1), e && (e.moveX = e.moveZ = 0), this.input.takeShots());
+    if (
+      !e ||
+      !e.alive ||
+      (this.state !== `playing` && this.state !== `countdown`)
+    ) {
+      ((this.guide.visible = !1),
+        e && (e.moveX = e.moveZ = 0),
+        this.input.takeShots());
       return;
     }
     let t = this.input,
@@ -375,7 +497,9 @@ var Game = class {
       if (n.cancelled) continue;
       let t = n.kind === `super` ? e.def.super : e.def.attack,
         r = n.tap ? this.autoAim(t) : this.stickAim(n, t);
-      n.kind === `super` ? e.useSuper(r.dx, r.dz, r.x, r.z) : e.attack(r.dx, r.dz, r.x, r.z);
+      n.kind === `super`
+        ? e.useSuper(r.dx, r.dz, r.x, r.z)
+        : e.attack(r.dx, r.dz, r.x, r.z);
     }
     if (t.touchMode) {
       let n = t.sticks,
@@ -401,9 +525,13 @@ var Game = class {
     ((r /= a), (i /= a));
     let o = t.consumeSuperRelease(),
       s = t.superHeld && e.superReady;
-    o && e.superReady ? e.useSuper(r, i, ad.x, ad.z) : t.fire && !s && e.attack(r, i, ad.x, ad.z);
+    o && e.superReady
+      ? e.useSuper(r, i, ad.x, ad.z)
+      : t.fire && !s && e.attack(r, i, ad.x, ad.z);
     let c = s ? `super` : `attack`;
-    e.airborne ? (this.guide.visible = !1) : this.updateGuide(e.def[c], c, r, i, a, s);
+    e.airborne
+      ? (this.guide.visible = !1)
+      : this.updateGuide(e.def[c], c, r, i, a, s);
   }
   stickAim(e, t) {
     let n = this.player,
@@ -414,7 +542,13 @@ var Game = class {
         t.kind === `lob` || t.kind === `leap`
           ? Math.max(t.kind === `leap` ? 2 : 1, e.mag * t.range)
           : t.range;
-    return { dx: i, dz: a, dist: o, x: n.x + i * o, z: n.z + a * o };
+    return {
+      dx: i,
+      dz: a,
+      dist: o,
+      x: n.x + i * o,
+      z: n.z + a * o
+    };
   }
   autoAim(e) {
     let t = this.player,
@@ -445,7 +579,13 @@ var Game = class {
       ((r = t.x + Math.sin(t.facing) * n), (i = t.z + Math.cos(t.facing) * n));
     }
     let o = Math.hypot(r - t.x, i - t.z) || 1;
-    return { dx: (r - t.x) / o, dz: (i - t.z) / o, dist: o, x: r, z: i };
+    return {
+      dx: (r - t.x) / o,
+      dz: (i - t.z) / o,
+      dist: o,
+      x: r,
+      z: i
+    };
   }
   separateBrawlers() {
     let e = this.brawlers,
@@ -492,7 +632,7 @@ var Game = class {
         t[n++].set(r.x, r.z, 1.05, a);
       }
     }
-    for (; n < 8;) t[n++].set(0, 0, 1, 0);
+    for (; n < 8; ) t[n++].set(0, 0, 1, 0);
     let r = this.world.grassUniforms.uReveal.value;
     e ? r.set(e.x, e.z, 0, +!!e.inBush) : r.set(0, 0, 0, 0);
   }
@@ -504,8 +644,8 @@ var Game = class {
             el(
               GAME_CONFIG.startHour,
               GAME_CONFIG.endHour,
-              $c(this.matchTime / GAME_CONFIG.dayLength, 0, 1),
-            ),
+              $c(this.matchTime / GAME_CONFIG.dayLength, 0, 1)
+            )
           ));
   }
   updateCamera(e) {
@@ -519,7 +659,7 @@ var Game = class {
         t.position.set(
           Math.sin(this.menuAngle) * n * 0.55,
           30 * r,
-          9 + Math.cos(this.menuAngle) * n * 0.62,
+          9 + Math.cos(this.menuAngle) * n * 0.62
         ),
         t.lookAt(this.focus));
       return;
@@ -554,7 +694,7 @@ var Game = class {
     (t.position.set(
       this.focus.x + l,
       Math.sin(CAMERA_PITCH) * o,
-      this.focus.z + Math.cos(CAMERA_PITCH) * o + u,
+      this.focus.z + Math.cos(CAMERA_PITCH) * o + u
     ),
       t.lookAt(this.focus.x + l, 0, this.focus.z + u));
   }
@@ -572,7 +712,9 @@ var Game = class {
       (t !== this.lastCount &&
         t >= 1 &&
         t <= 3 &&
-        ((this.lastCount = t), this.hud.banner(String(t), 0.8), this.audio.play(`count`)),
+        ((this.lastCount = t),
+        this.hud.banner(String(t), 0.8),
+        this.audio.play(`count`)),
         this.countdownT <= 0.4 &&
           this.lastCount !== 0 &&
           ((this.lastCount = 0),
@@ -584,10 +726,14 @@ var Game = class {
     this.controlPlayer();
     for (let t of this.brains) t.update(e);
     for (let t of this.brawlers) t.update(e);
-    if ((this.separateBrawlers(), this.combat.update(e), this.state !== `menu`)) {
+    if (
+      (this.separateBrawlers(), this.combat.update(e), this.state !== `menu`)
+    ) {
       let t = this.gas.active;
       (this.gas.update(e, this.matchTime),
-        !t && this.gas.active && this.hud.banner(`POISON GAS IS CLOSING IN!`, 2.2, !0));
+        !t &&
+          this.gas.active &&
+          this.hud.banner(`POISON GAS IS CLOSING IN!`, 2.2, !0));
     }
     (this.effects.update(e),
       this.updateVisibility(),
@@ -599,19 +745,33 @@ var Game = class {
       e.alive &&
         !e.hidden &&
         e.superReady &&
-        t.addLight(e.x, 0.9, e.z, od, 1.5 + Math.sin(this.elapsed * 6) * 0.4, 3.6);
+        t.addLight(
+          e.x,
+          0.9,
+          e.z,
+          od,
+          1.5 + Math.sin(this.elapsed * 6) * 0.4,
+          3.6
+        );
     let n = this.player;
     if (
-      (n && n.alive && t.night > 0.02 && t.addLight(n.x, 1.9, n.z, sd, 2.4 * t.night, 6.5),
+      (n &&
+        n.alive &&
+        t.night > 0.02 &&
+        t.addLight(n.x, 1.9, n.z, sd, 2.4 * t.night, 6.5),
       (this.audio.listener.x = this.focus.x),
       (this.audio.listener.z = this.focus.z),
       t.update(e, this.elapsed, this.camera, this.focus),
       this.state === `menu`)
     ) {
       let t = this.brawlers.reduce((e, t) => e + +!!t.alive, 0);
-      ((this.attractT = t <= 1 ? this.attractT + e : 0), this.attractT > 2.5 && this.toMenu());
+      ((this.attractT = t <= 1 ? this.attractT + e : 0),
+        this.attractT > 2.5 && this.toMenu());
     }
-    if (this.pendingResult && ((this.pendingResult.t -= e), this.pendingResult.t <= 0)) {
+    if (
+      this.pendingResult &&
+      ((this.pendingResult.t -= e), this.pendingResult.t <= 0)
+    ) {
       let e = this.pendingResult;
       ((this.pendingResult = null),
         this.hud.showResult(
@@ -619,7 +779,7 @@ var Game = class {
           e.rank,
           this.brawlers.length,
           this.player.kills,
-          this.player.cubes,
+          this.player.cubes
         ));
     }
     this.hud.update(e);
@@ -648,7 +808,7 @@ var Game = class {
       if (((this.perf.benchMs = a), a <= 20 || o >= r.length - 1)) break;
       (this.setQuality(r[o + 1]),
         this.hud.toast(
-          `${QUALITY_PRESETS[r[o + 1]].label} quality picked for this GPU - change it any time under ⚙`,
+          `${QUALITY_PRESETS[r[o + 1]].label} quality picked for this GPU - change it any time under ⚙`
         ));
     }
     this.lighting.setTime(i);
@@ -672,7 +832,7 @@ var Game = class {
       i < r.length - 1 &&
       (this.setQuality(r[i + 1]),
       this.hud.toast(
-        `Running at ${Math.round(n)} fps - switched to ${QUALITY_PRESETS[r[i + 1]].label} quality`,
+        `Running at ${Math.round(n)} fps - switched to ${QUALITY_PRESETS[r[i + 1]].label} quality`
       ));
   }
   frame(e) {
@@ -692,7 +852,7 @@ var Game = class {
         (this.last = performance.now()),
         document.getElementById(`loading`).classList.add(`done`)),
       this.adaptQuality(t),
-      this.frameRequest = requestAnimationFrame(this.frame));
+      (this.frameRequest = requestAnimationFrame(this.frame)));
   }
 };
 function startGame(e = {}) {
@@ -700,9 +860,4 @@ function startGame(e = {}) {
   window.__game = game;
   return game;
 }
-
-export {
-  Game,
-  cd,
-  startGame
-};
+export { Game, cd, startGame };

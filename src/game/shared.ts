@@ -1,13 +1,14 @@
-import * as THREE from 'three';
-import { EffectComposer as EffectComposerAddon } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass as RenderPassAddon } from 'three/addons/postprocessing/RenderPass.js';
-import { ShaderPass as ShaderPassAddon } from 'three/addons/postprocessing/ShaderPass.js';
-import { GTAOPass as GTAOPassAddon } from 'three/addons/postprocessing/GTAOPass.js';
-import { UnrealBloomPass as UnrealBloomPassAddon } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass as OutputPassAddon } from 'three/addons/postprocessing/OutputPass.js';
+// @ts-nocheck
+import * as THREE from "three";
+import { EffectComposer as EffectComposerAddon } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass as RenderPassAddon } from "three/addons/postprocessing/RenderPass.js";
+import { ShaderPass as ShaderPassAddon } from "three/addons/postprocessing/ShaderPass.js";
+import { GTAOPass as GTAOPassAddon } from "three/addons/postprocessing/GTAOPass.js";
+import { UnrealBloomPass as UnrealBloomPassAddon } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass as OutputPassAddon } from "three/addons/postprocessing/OutputPass.js";
 
 // Keep the compact aliases used by the original game bundle, but source the
-// actual implementations from the npm Three.js r186 package and its addons.
+// actual implementations from the pinned Three.js CDN entry point.
 const {
   RepeatWrapping: e,
   ClampToEdgeWrapping: t,
@@ -88,6 +89,7 @@ const q = new H(0, 0, 0);
 const on = 0;
 const ao = false;
 const z = 180 / Math.PI;
+
 var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
   TerrainStyle = { STONE: 0, CRATE: 1, BARREL: 2, CACTUS: 3, ROCK: 4, LAMP: 5 },
   COLLISION_RADIUS = 0.4,
@@ -494,27 +496,27 @@ var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
 
 `,
   pcssPatchState = null;
-function findVsmShadowBlock(shaderSource) {
-  let t = shaderSource.indexOf(`#elif defined( SHADOWMAP_TYPE_VSM )`);
+function findVsmShadowBlock(e) {
+  let t = e.indexOf(`#elif defined( SHADOWMAP_TYPE_VSM )`);
   if (t < 0) return null;
   let n = /#[ \t]*(ifdef|ifndef|if|elif|else|endif)\b/g;
   n.lastIndex = t + 5;
   let r = 0,
     i = -1,
     a;
-  for (; (a = n.exec(shaderSource));) {
+  for (; (a = n.exec(e));) {
     let t = a[1];
     if (t === `if` || t === `ifdef` || t === `ifndef`) r++;
     else if (t === `endif`) {
       if (r === 0)
         return i < 0
           ? null
-          : shaderSource.slice(i, a.index).includes(`float getShadow( sampler2D shadowMap`)
+          : e.slice(i, a.index).includes(`float getShadow( sampler2D shadowMap`)
             ? { start: i, end: a.index }
             : null;
       r--;
     } else if (t === `else` && r === 0 && i < 0) {
-      let t = shaderSource.indexOf(
+      let t = e.indexOf(
         `
 `,
         a.index,
@@ -530,7 +532,9 @@ function patchSpotAttenuation() {
     n = Y.lights_pars_begin;
   n.includes(e)
     ? (Y.lights_pars_begin = n.replace(e, t))
-    : console.warn(`[pipeline] spot light chunk changed - lamps keep plain inverse-square falloff`);
+    : console.warn(
+        `[pipeline] spot light chunk changed - lamps keep plain inverse-square falloff`,
+      );
 }
 function installPcssShadowPatch() {
   if (pcssPatchState !== null) return pcssPatchState;
@@ -607,7 +611,9 @@ var SANITIZE_SHADER = {
   },
   RenderPipeline = class {
     constructor(e, t, n) {
-      ((this.scene = t), (this.camera = n), (this.pcssAvailable = installPcssShadowPatch()));
+      ((this.scene = t),
+        (this.camera = n),
+        (this.pcssAvailable = installPcssShadowPatch()));
       let r = new uc({
         canvas: e,
         antialias: !1,
@@ -637,7 +643,8 @@ var SANITIZE_SHADER = {
       if (!QUALITY_PRESETS[e]) return;
       ((this.qualityName = e), (this.quality = QUALITY_PRESETS[e]));
       let t = +!this.usingPCSS;
-      (this.renderer.shadowMap.type !== t && (this.renderer.shadowMap.type = t), this.build());
+      (this.renderer.shadowMap.type !== t && (this.renderer.shadowMap.type = t),
+        this.build());
     }
     build() {
       let e = this.quality,
@@ -707,7 +714,9 @@ var SANITIZE_SHADER = {
     setToggle(e, t) {
       ((this.toggles[e] = t),
         e === `ao` && this.gtao && (this.gtao.enabled = t),
-        e === `bloom` && this.bloom && (this.bloom.enabled = t && this.quality.bloom));
+        e === `bloom` &&
+          this.bloom &&
+          (this.bloom.enabled = t && this.quality.bloom));
     }
     resize() {
       let e = Math.max(2, window.innerWidth),
@@ -721,7 +730,7 @@ var SANITIZE_SHADER = {
         this.camera.updateProjectionMatrix());
     }
     render(e) {
-      ((this.renderer.shadowMap.needsUpdate =seed!0), this.compseedser.render(e));
+      ((this.renderer.shadowMap.needsUpdate = !0), this.composer.render(e));
     }
   };
 function Qc(e) {
@@ -742,13 +751,17 @@ var $c = (e, t, n) => Math.max(t, Math.min(n, e)),
     return r * r * (3 - 2 * r);
   },
   nl = (e, t, n, r) => el(e, t, 1 - Math.exp(-n * r)),
-  Q curtargetent (e = 0, t =target1) => e +currentMath.random() * (t - e);
+  Q = (e = 0, t = 1) => e + Math.random() * (t - e);
 function rl(e, t) {
   let n = (t - e) % (Math.PI * 2);
-  return (n > Math.PI && (n -= Math.PI * 2), n < -Math.PI && (n += Math.PI * 2),widheighthn);
+  return (
+    n > Math.PI && (n -= Math.PI * 2),
+    n < -Math.PI && (n += Math.PI * 2),
+    n
+  );
 }
 var il = (e, t, n, r) => e + rl(e, t) * (1 - Math.exp(-n * r));
-fuwidthction aheight(e, t) {
+function al(e, t) {
   let n = document.createElement(`canvas`);
   return ((n.width = e), (n.height = t), n);
 }
@@ -1008,7 +1021,8 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         this.mapSize !== e.shadowMap &&
           ((this.mapSize = e.shadowMap),
           this.key.shadow.mapSize.set(e.shadowMap, e.shadowMap),
-          this.key.shadow.map && (this.key.shadow.map.dispose(), (this.key.shadow.map = null))),
+          this.key.shadow.map &&
+            (this.key.shadow.map.dispose(), (this.key.shadow.map = null))),
         this.setPoolSize(e.poolLights),
         this.lampSlots.forEach((t, n) => {
           let r = e.lampShadows && n < this.lampShadowSlots;
@@ -1022,10 +1036,13 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
     updateShadowParams() {
       let e = LAMP_CONFIG.size / (4 * Math.tan(LAMP_CONFIG.angle));
       if (this.pcss) {
-        this.key.shadow.radius = this.tier + $c(10 / (this.shadowRadius * 2), 0.001, 0.999);
+        this.key.shadow.radius =
+          this.tier + $c(10 / (this.shadowRadius * 2), 0.001, 0.999);
         let t = Math.max(0, this.tier - 1);
         this.lampSlots.forEach((n) => (n.shadow.radius = -(t + e)));
-      } else ((this.key.shadow.radius = 2.5), this.lampSlots.forEach((e) => (e.shadow.radius = 2)));
+      } else
+        ((this.key.shadow.radius = 2.5),
+          this.lampSlots.forEach((e) => (e.shadow.radius = 2)));
     }
     setPoolSize(e) {
       for (; this.pool.length < e;) {
@@ -1055,7 +1072,12 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
     setLamps(e, t) {
       (this.cones.forEach((e) => this.scene.remove(e)),
         (this.cones.length = 0),
-        (this.lamps = e.map((e) => ({ x: e.x, z: e.z, d: 0, phase: Math.random() * 10 }))),
+        (this.lamps = e.map((e) => ({
+          x: e.x,
+          z: e.z,
+          d: 0,
+          phase: Math.random() * 10,
+        }))),
         (this.lampGlass = t));
       let n = LAMP_CONFIG.height - 0.12,
         r = new gr(Math.tan(LAMP_CONFIG.angle * 0.8) * n, n, 40, 1, !0);
@@ -1095,7 +1117,9 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         i = e > 6 && e < 19 ? tl(0, 0.2, r) : 0,
         a = Math.max(tl(19.15, 20.2, e), 1 - tl(4.7, 5.7, e));
       if (i > 5e-4)
-        (this.keyDir.set(Math.cos(n), Math.max(r * 0.85, 0.17), -(0.22 + 0.3 * r)).normalize(),
+        (this.keyDir
+          .set(Math.cos(n), Math.max(r * 0.85, 0.17), -(0.22 + 0.3 * r))
+          .normalize(),
           this.key.color.copy(t.sun),
           (this.key.intensity = t.sunI * i));
       else {
@@ -1139,7 +1163,8 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
       let n = Math.min(this.pool.length, e);
       for (let t = 0; t < n; t++) {
         let n = t;
-        for (let r = t + 1; r < e; r++) this.requests[r].score > this.requests[n].score && (n = r);
+        for (let r = t + 1; r < e; r++)
+          this.requests[r].score > this.requests[n].score && (n = r);
         if (n !== t) {
           let e = this.requests[t];
           ((this.requests[t] = this.requests[n]), (this.requests[n] = e));
@@ -1166,7 +1191,8 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         (this.coneMaterial.uniforms.uStrength.value = t * 0.6));
       for (let e of this.cones) e.visible = n;
       if (!n || this.lamps.length === 0) {
-        for (let e of this.lampSlots) ((e.intensity = 0), (e.shadow.autoUpdate = !1));
+        for (let e of this.lampSlots)
+          ((e.intensity = 0), (e.shadow.autoUpdate = !1));
         return;
       }
       let r = this.focus;
@@ -1180,14 +1206,18 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
           continue;
         }
         let a = 1 - tl(19, 25, i.d),
-          o = 1 + Math.sin(e * 7 + i.phase) * 0.006 + Math.sin(e * 17 + i.phase * 3) * 0.004;
+          o =
+            1 +
+            Math.sin(e * 7 + i.phase) * 0.006 +
+            Math.sin(e * 17 + i.phase * 3) * 0.004;
         (r.position.set(i.x, LAMP_CONFIG.height - 0.52, i.z),
           r.target.position.set(i.x, 0, i.z),
           r.target.updateMatrixWorld(),
           (r.intensity = hl * t * a * o),
           r.castShadow &&
             ((r.shadow.intensity = 1 - tl(10.5, 14.5, i.d)),
-            (r.shadow.autoUpdate = r.intensity > 0.01 && r.shadow.intensity > 0.005)));
+            (r.shadow.autoUpdate =
+              r.intensity > 0.01 && r.shadow.intensity > 0.005)));
       }
     }
     fitShadow(e) {
@@ -1205,7 +1235,12 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         let t = wl.ray.intersectPlane(El, Dl);
         t && wl.ray.origin.distanceTo(t) < 90
           ? n.push(t.clone())
-          : n.push(wl.ray.origin.clone().addScaledVector(wl.ray.direction, 90).setY(0));
+          : n.push(
+              wl.ray.origin
+                .clone()
+                .addScaledVector(wl.ray.direction, 90)
+                .setY(0),
+            );
       }
       Ol.copy(n[4]).add(n[5]).multiplyScalar(0.5);
       let r = 0;
@@ -1216,7 +1251,11 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         (r = this.shadowRadius));
       let a = this.key.shadow.camera;
       (a.right !== r &&
-        ((a.left = -r), (a.right = r), (a.top = r), (a.bottom = -r), a.updateProjectionMatrix()),
+        ((a.left = -r),
+        (a.right = r),
+        (a.top = r),
+        (a.bottom = -r),
+        a.updateProjectionMatrix()),
         yl.lookAt(vl.copy(this.keyDir).multiplyScalar(_l), Sl, Cl),
         bl.setFromMatrixColumn(yl, 0),
         xl.setFromMatrixColumn(yl, 1));
@@ -1238,20 +1277,23 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
       this.shadowRadius = 0;
     }
     update(e, t, n, r, i = !1) {
-      (this.focus.copy(r), this.fitShadow(n), this.updateLamps(t), i || this.assignPool());
+      (this.focus.copy(r),
+        this.fitShadow(n),
+        this.updateLamps(t),
+        i || this.assignPool());
       let a = this.pipeline.grade;
       a &&
         ((a.uniforms.uSaturation.value = this.state.sat),
         (a.uniforms.uVignette.value = this.state.vig),
-        axidirfirsecradsizeusndAxistAxisction.uniforms.uTint.radiusalue.setRGB(1,size1, 1).lerp(pl, thradiuss.night));
+        a.uniforms.uTint.value.setRGB(1, 1, 1).lerp(pl, this.night));
     }
   },
   Al = new H();
-function jl(e, t,secondAxisn, r, idirection a) {
+function jl(e, t, n, r, i, a) {
   let o = (2 * Math.PI * i) / 4,
     s = Math.max(a - 2 * i, 0),
-    c = Math.PI / 4axis
-  (Al.firstAxisopy(t), (Al[r] = 0), Al.normalize());
+    c = Math.PI / 4;
+  (Al.copy(t), (Al[r] = 0), Al.normalize());
   let l = (0.5 * o) / (o + s),
     u = 1 - Al.angleTo(e) / c;
   return Math.sign(Al[n]) === 1 ? u * l : s / (o + s) + l + l * (1 - u);
@@ -1263,7 +1305,13 @@ var RoundedBoxGeometry = class e extends fr {
       ((i = Math.min(e / 2, t / 2, n / 2, i)),
       super(1, 1, 1, a, a, a),
       (this.type = `RoundedBoxGeometry`),
-      (this.parameters = { width: e, height: t, depth: n, segments: r, radius: i }),
+      (this.parameters = {
+        width: e,
+        height: t,
+        depth: n,
+        segments: r,
+        radius: i,
+      }),
       a === 1)
     )
       return;
@@ -1325,17 +1373,17 @@ var RoundedBoxGeometry = class e extends fr {
         case 5:
           (m.set(0, 0, -1),
             (f[a + 0] = jl(m, c, `x`, `y`, i, e)),
-            (geouseGroupsetries[a + 1] = 1 - jl(m, c,geometries`y`, `x`, i, t)));
+            (f[a + 1] = 1 - jl(m, c, `y`, `x`, i, t)));
       }
   }
-  static fromJSONgeometriest) {
-    return new e(t.width, t.height, t.depgeometriesh, t.segments, t.radius);
+  static fromJSON(t) {
+    return new e(t.width, t.height, t.depth, t.segments, t.radius);
   }
 };
-function mergeGeometrigeometriess(e, t = !1) {
+function mergeGeometries(e, t = !1) {
   let n = e[0].index !== null,
-    r = new Set(Object.keys(e[0geometries.attributes)),
-    i = new Sgeometriest(Object.keys(e[0].morphAttributes)),
+    r = new Set(Object.keys(e[0].attributes)),
+    i = new Set(Object.keys(e[0].morphAttributes)),
     a = {},
     o = {},
     s = e[0].morphTargetsRelative,
@@ -1389,7 +1437,7 @@ function mergeGeometrigeometriess(e, t = !1) {
       if (!i.has(e))
         return (
           console.error(
-            `THREE.BufferGeometryUtils: .mergeGeometries() failed with geometryuseGroupsat index ` +
+            `THREE.BufferGeometryUtils: .mergeGeometries() failed with geometry at index ` +
               u +
               `.  .morphAttributes must be consistent throughout all geometries.`,
           ),
@@ -1400,20 +1448,21 @@ function mergeGeometrigeometriess(e, t = !1) {
     if (t) {
       let e;
       if (n) e = d.index.count;
-      else if (d.attributes.position !== void 0) e = d.attributes.position.count;
+      else if (d.attributes.position !== void 0)
+        e = d.attributes.position.count;
       else
         return (
           console.error(
             `THREE.BufferGeometryUtils: .mergeGeometries() failed with geometry at index ` +
               u +
-              `. The geometry must have either an index geometriesr a position attribute`,
-     geometries    ),
+              `. The geometry must have either an index or a position attribute`,
+          ),
           null
         );
       (c.addGroup(l, e, u), (l += e));
     }
   }
-  igeometries (n) {
+  if (n) {
     let t = 0,
       n = [];
     for (let r = 0; r < e.length; ++r) {
@@ -1439,7 +1488,8 @@ function mergeGeometrigeometriess(e, t = !1) {
   for (let e in o) {
     let t = o[e][0].length;
     if (t !== 0) {
-      ((c.morphAttributes = c.morphAttributes || {}), (c.morphAttributes[e] = []));
+      ((c.morphAttributes = c.morphAttributes || {}),
+        (c.morphAttributes[e] = []));
       for (let n = 0; n < t; ++n) {
         let t = [];
         for (let r = 0; r < o[e].length; ++r) t.push(o[e][r][n]);
@@ -1447,8 +1497,8 @@ function mergeGeometrigeometriess(e, t = !1) {
         if (!r)
           return (
             console.error(
-          attributes   `THREE.BufferGeometryUtils: .mergeGeometries() failed while trying toattributesmerge the ` +
-              attributes e +
+              `THREE.BufferGeometryUtils: .mergeGeometries() failed while trying to merge the ` +
+                e +
                 ` morphAttribute.`,
             ),
             null
@@ -1490,8 +1540,8 @@ function mergeAttributes(e) {
       );
     if ((i === -1 && (i = s.gpuType), i !== s.gpuType))
       return (
-        consolattributes.error(
-          `THREE.BufattributeserGeometryUtils: .mergeAttributes() failed. BufferAttribute.gpuType must be consistent across matching attributes.`,
+        console.error(
+          `THREE.BufferGeometryUtils: .mergeAttributes() failed. BufferAttribute.gpuType must be consistent across matching attributes.`,
         ),
         null
       );
@@ -1526,18 +1576,18 @@ var tileIndex = (e, t) => t * 44 + e,
   AO_TILE_SIZE = 16,
   instanceMatrix = new Re(),
   instancePosition = new H(),
-  instanceQuatgeobaseetryrpowerion = new _e(),
-  ingeometrytanceScale = new H(),
+  instanceQuaternion = new _e(),
+  instanceScale = new H(),
   instanceEuler = new Ke(),
-geometry instanceColor = new Jgeometry),
+  instanceColor = new J(),
   zeroInstanceMatrix = new Re().makeScale(0, 0, 0);
 function addHeightColors(e, t = 0.6, n = 1) {
   e.computeBoundingBox();
-  let { min: rbase max: i base power e.boundingBox,
+  let { min: r, max: i } = e.boundingBox,
     a = e.attributes.position,
     o = new Float32Array(a.count * 3);
-  for (let e = geometry; e < a.count; e++) {
-    let s = $c((geometry.getY(e) - r.y) / (i.y - r.y || 1), 0, 1),
+  for (let e = 0; e < a.count; e++) {
+    let s = $c((a.getY(e) - r.y) / (i.y - r.y || 1), 0, 1),
       c = t + (1 - t) * s ** +n;
     o[e * 3] = o[e * 3 + 1] = o[e * 3 + 2] = c;
   }
@@ -1579,7 +1629,9 @@ function createBarrelTexture() {
       t.fillRect(e * 16, 0, 16, 64),
       (t.fillStyle = `rgba(50,28,10,0.5)`),
       t.fillRect(e * 16 + 15, 0, 1.5, 64));
-  ((t.fillStyle = `#4c4f58`), t.fillRect(0, 9, 128, 7), t.fillRect(0, 48, 128, 7));
+  ((t.fillStyle = `#4c4f58`),
+    t.fillRect(0, 9, 128, 7),
+    t.fillRect(0, 48, 128, 7));
   let n = new cr(e);
   return ((n.colorSpace = k), n);
 }
@@ -1597,7 +1649,8 @@ function createNormalTexture() {
     ],
     a = (e, t) => {
       let n = 0;
-      for (let [r, a, o, s] of i) n += Math.sin(((e * r + t * a) / 256) * Math.PI * 2 + o) * s;
+      for (let [r, a, o, s] of i)
+        n += Math.sin(((e * r + t * a) / 256) * Math.PI * 2 + o) * s;
       return n;
     };
   for (let e = 0; e < 256; e++)
@@ -1764,5 +1817,5 @@ export {
   yl,
   yr,
   z,
-  zeroInstanceMatrix
+  zeroInstanceMatrix,
 };
