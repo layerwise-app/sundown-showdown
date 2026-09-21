@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
+import { SundownShowdown } from '~/game/SundownShowdown';
 
 export const Route = createFileRoute('/')({
   head: () => ({
@@ -15,14 +16,5 @@ export const Route = createFileRoute('/')({
 });
 
 function Home() {
-  return (
-    <main className='fixed inset-0 overflow-hidden bg-[#0b0e1a]'>
-      <iframe
-        allow='autoplay; fullscreen'
-        className='block size-full border-0'
-        src='/sundown-showdown.html'
-        title='Sundown Showdown'
-      />
-    </main>
-  );
+  return <SundownShowdown />;
 }
