@@ -1,131 +1,141 @@
 // @ts-nocheck
 import {
-  $c,
+  clamp,
   BRAWLER_DEFS,
   COLLISION_RADIUS,
   DIFFICULTIES,
   GAME_CONFIG,
-  H,
-  Hi,
-  J,
-  Ke,
-  Ln,
-  N,
-  Nr,
-  Q,
+  Vector3,
+  Raycaster,
+  Color,
+  Euler,
+  Mesh,
+  DynamicDrawUsage,
+  MeshStandardMaterial,
+  randomRange,
   QUALITY_PRESETS,
-  Re,
+  Matrix4,
   T,
   TileType,
-  Tn,
-  V,
-  Yn,
-  Zt,
+  MeshBasicMaterial,
+  Vector2,
+  InstancedMesh,
+  BufferAttribute,
   _,
-  _e,
-  _n,
-  a,
-  al,
+  Quaternion,
+  Plane,
+  createCanvas,
   ao,
-  ar,
+  Points,
   b,
-  br,
+  RingGeometry,
   c,
-  cr,
+  CanvasTexture,
   d,
   e,
-  el,
+  lerp,
   f,
-  fr,
+  BoxGeometry,
   g,
   h,
   i,
-  il,
+  dampAngle,
   instanceColor,
   instanceMatrix,
-  jr,
-  k,
+  ShaderMaterial,
+  SRGBColorSpace,
   l,
   m,
-  mr,
+  CircleGeometry,
   n,
-  nl,
+  damp,
   o,
   on,
   p,
-  pn,
+  BufferGeometry,
   q,
   r,
   s,
-  sl,
+  distance,
   t,
-  tl,
+  smoothstep,
   u,
-  ut,
+  Group,
   v,
   w,
   x,
-  xr,
+  SphereGeometry,
   y,
-  yr,
+  PlaneGeometry,
   z,
 } from "./shared.js";
-import { au, cu, eu, iu, lu, nu, ou, ru, su, tu } from "./world.js";
+import { torusGeometry, superRingGeometry, sphereGeometry, partialSphereGeometry, standardMaterial, cylinderGeometry, brawlerRingGeometry, boxGeometry, playerDiscGeometry, capsuleGeometry } from "./world.js";
 
-function uu(e, t) {
-  let n = e.palette,
-    r = {
-      body: lu(n.body),
-      accent: lu(n.accent),
-      skin: lu(n.skin, { roughness: 0.72 }),
-      dark: lu(n.dark, { roughness: 0.8 }),
-      metal: lu(10133938, { metalness: 0.75, roughness: 0.3 }),
-      wood: lu(8014370, { roughness: 0.75 }),
-      white: lu(16777215, { roughness: 0.35 }),
-      black: lu(1381659, { roughness: 0.4 }),
-    };
-  t &&
-    (r.body.color.offsetHSL(t, 0, 0), r.accent.color.offsetHSL(t * 0.6, 0, 0));
-  let i = lu(3351040, { emissive: 16765562, emissiveIntensity: 3 }),
-    a = new ut(),
-    o = new ut();
-  a.add(o);
-  let s = (e, t, n, r = 0, i = 0, a = 0, o = 1, s = 1, c = 1) => {
-      let l = new Ln(t, n);
+function createBrawlerModel(brawlerDefinition, hueShift = 0) {
+  const palette = brawlerDefinition.palette;
+  const materials = {
+      body: standardMaterial(palette.body),
+      accent: standardMaterial(palette.accent),
+      skin: standardMaterial(palette.skin, { roughness: 0.72 }),
+      dark: standardMaterial(palette.dark, { roughness: 0.8 }),
+      metal: standardMaterial(10133938, { metalness: 0.75, roughness: 0.3 }),
+      wood: standardMaterial(8014370, { roughness: 0.75 }),
+      white: standardMaterial(16777215, { roughness: 0.35 }),
+      black: standardMaterial(1381659, { roughness: 0.4 }),
+  };
+  if (hueShift) {
+    materials.body.color.offsetHSL(hueShift, 0, 0);
+    materials.accent.color.offsetHSL(hueShift * 0.6, 0, 0);
+  }
+  const muzzleMaterial = standardMaterial(3351040, { emissive: 16765562, emissiveIntensity: 3 });
+  const root = new Group();
+  const bodyGroup = new Group();
+  root.add(bodyGroup);
+  const addMesh = (parent, geometry, material, x = 0, y = 0, z = 0, scaleX = 1, scaleY = 1, scaleZ = 1) => {
+      const mesh = new Mesh(geometry, material);
       return (
-        l.position.set(r, i, a),
-        l.scale.set(o, s, c),
-        (l.castShadow = !0),
-        (l.receiveShadow = !0),
-        e.add(l),
-        l
+        mesh.position.set(x, y, z),
+        mesh.scale.set(scaleX, scaleY, scaleZ),
+        (mesh.castShadow = !0),
+        (mesh.receiveShadow = !0),
+        parent.add(mesh),
+        mesh
       );
     },
-    c = [-1, 1].map((e) => {
-      let t = new ut();
+    legs = [-1, 1].map((side) => {
+      const leg = new Group();
       return (
-        t.position.set(e * 0.13, 0.37, 0),
-        s(t, tu(0.09, 0.12), r.dark, 0, -0.13, 0),
-        s(t, eu(0.11), r.black, 0, -0.3, 0.05, 1, 0.62, 1.5),
-        a.add(t),
-        t
+        leg.position.set(side * 0.13, 0.37, 0),
+        addMesh(leg, capsuleGeometry(0.09, 0.12), materials.dark, 0, -0.13, 0),
+        addMesh(leg, sphereGeometry(0.11), materials.black, 0, -0.3, 0.05, 1, 0.62, 1.5),
+        root.add(leg),
+        leg
       );
     }),
-    l = e.id === `titan`,
-    u = s(
-      o,
-      tu(0.235, 0.2),
-      r.body,
+    isTitan = brawlerDefinition.id === `titan`,
+    torso = addMesh(
+      bodyGroup,
+      capsuleGeometry(0.235, 0.2),
+      materials.body,
       0,
       0.6,
       0,
-      l ? 1.32 : 1,
-      l ? 1.08 : 1,
-      l ? 1.12 : 0.86,
+      isTitan ? 1.32 : 1,
+      isTitan ? 1.08 : 1,
+      isTitan ? 1.12 : 0.86,
     );
+  const e = brawlerDefinition;
+  const r = materials;
+  const i = muzzleMaterial;
+  const a = root;
+  const o = bodyGroup;
+  const s = addMesh;
+  const c = legs;
+  const l = isTitan;
+  const u = torso;
   s(
-    o,
-    nu(0.245, 0.245, 0.075),
+    bodyGroup,
+    cylinderGeometry(0.245, 0.245, 0.075),
     r.dark,
     0,
     0.42,
@@ -134,23 +144,23 @@ function uu(e, t) {
     1,
     l ? 1.1 : 0.88,
   );
-  let d = new ut();
+  let d = new Group();
   (d.position.set(0, 1.07, 0), o.add(d));
-  let f = s(d, eu(0.3, 24, 18), l ? r.body : r.skin, 0, 0, 0, 1, 0.94, 0.97);
+  let f = s(d, sphereGeometry(0.3, 24, 18), l ? r.body : r.skin, 0, 0, 0, 1, 0.94, 0.97);
   for (let e of [-1, 1]) {
-    (s(d, eu(0.075), r.white, e * 0.115, 0.03, 0.252, 1, 1.2, 0.55),
-      s(d, eu(0.04), r.black, e * 0.112, 0.03, 0.29, 1, 1.2, 0.5));
-    let t = s(d, ru(0.14, 0.036, 0.04), r.dark, e * 0.115, 0.14, 0.268);
+    (s(d, sphereGeometry(0.075), r.white, e * 0.115, 0.03, 0.252, 1, 1.2, 0.55),
+      s(d, sphereGeometry(0.04), r.black, e * 0.112, 0.03, 0.29, 1, 1.2, 0.5));
+    let t = s(d, boxGeometry(0.14, 0.036, 0.04), r.dark, e * 0.115, 0.14, 0.268);
     t.rotation.z = -e * 0.32;
   }
   let p = l ? 0.38 : 0.31,
     m = [-1, 1].map((e) => {
-      let t = new ut();
+      let t = new Group();
       (t.position.set(e * p, 0.8, 0),
-        s(t, tu(0.075, 0.15), l ? r.skin : r.body, 0, -0.12, 0));
+        s(t, capsuleGeometry(0.075, 0.15), l ? r.skin : r.body, 0, -0.12, 0));
       let n = s(
         t,
-        eu(l ? 0.165 : 0.095),
+        sphereGeometry(l ? 0.165 : 0.095),
         l ? r.accent : r.skin,
         0,
         -0.28,
@@ -161,7 +171,7 @@ function uu(e, t) {
       );
       return ((t.userData.hand = n), o.add(t), t);
     }),
-    h = new ut();
+    h = new Group();
   o.add(h);
   let g = [],
     _ = {
@@ -172,37 +182,37 @@ function uu(e, t) {
       swingArms: !1,
     };
   if (e.id === `dusty`) {
-    (s(d, iu(0.325, 0.56), r.accent, 0, 0.02, -0.025),
-      s(d, eu(0.13), r.accent, 0, 0.03, -0.34),
-      s(d, eu(0.09), r.accent, 0, -0.1, -0.42));
-    let e = s(d, au(0.295, 0.034), r.body, 0, 0.1, 0);
+    (s(d, partialSphereGeometry(0.325, 0.56), r.accent, 0, 0.02, -0.025),
+      s(d, sphereGeometry(0.13), r.accent, 0, 0.03, -0.34),
+      s(d, sphereGeometry(0.09), r.accent, 0, -0.1, -0.42));
+    let e = s(d, torusGeometry(0.295, 0.034), r.body, 0, 0.1, 0);
     ((e.rotation.x = Math.PI / 2), h.position.set(0.02, 0.63, 0.24));
     for (let e of [-1, 1])
       s(
         h,
-        nu(0.045, 0.045, 0.62, 10),
+        cylinderGeometry(0.045, 0.045, 0.62, 10),
         r.metal,
         e * 0.046,
         0.02,
         0.36,
       ).rotation.x = Math.PI / 2;
-    (s(h, ru(0.1, 0.13, 0.34), r.wood, 0, -0.02, -0.06),
-      s(h, ru(0.15, 0.085, 0.2), r.wood, 0, -0.04, 0.3),
-      g.push(new H(0.02, 0.65, 0.95)),
+    (s(h, boxGeometry(0.1, 0.13, 0.34), r.wood, 0, -0.02, -0.06),
+      s(h, boxGeometry(0.15, 0.085, 0.2), r.wood, 0, -0.04, 0.3),
+      g.push(new Vector3(0.02, 0.65, 0.95)),
       (_.armBase = [
         [-1.35, 0.55],
         [-1.2, -0.4],
       ]));
   } else if (e.id === `ace`) {
-    (s(d, nu(0.2, 0.235, 0.21), r.accent, 0, 0.29, 0),
-      s(d, nu(0.47, 0.47, 0.036, 28), r.accent, 0, 0.19, 0, 1, 1, 0.92),
-      s(d, nu(0.24, 0.24, 0.055), r.dark, 0, 0.215, 0));
-    let e = s(o, au(0.19, 0.06), r.accent, 0, 0.87, 0.02);
+    (s(d, cylinderGeometry(0.2, 0.235, 0.21), r.accent, 0, 0.29, 0),
+      s(d, cylinderGeometry(0.47, 0.47, 0.036, 28), r.accent, 0, 0.19, 0, 1, 1, 0.92),
+      s(d, cylinderGeometry(0.24, 0.24, 0.055), r.dark, 0, 0.215, 0));
+    let e = s(o, torusGeometry(0.19, 0.06), r.accent, 0, 0.87, 0.02);
     ((e.rotation.x = Math.PI / 2), h.position.set(0, 0.67, 0.34));
     for (let e of [-1, 1])
       ((s(
         h,
-        nu(0.035, 0.035, 0.32, 8),
+        cylinderGeometry(0.035, 0.035, 0.32, 8),
         r.metal,
         e * 0.27,
         0.025,
@@ -210,50 +220,50 @@ function uu(e, t) {
       ).rotation.x = Math.PI / 2),
         (s(
           h,
-          nu(0.058, 0.058, 0.09, 10),
+          cylinderGeometry(0.058, 0.058, 0.09, 10),
           r.metal,
           e * 0.27,
           0.025,
           0.03,
         ).rotation.x = Math.PI / 2),
-        s(h, ru(0.06, 0.14, 0.075), r.dark, e * 0.27, -0.055, -0.02),
-        g.push(new H(e * 0.27, 0.7, 0.72)));
+        s(h, boxGeometry(0.06, 0.14, 0.075), r.dark, e * 0.27, -0.055, -0.02),
+        g.push(new Vector3(e * 0.27, 0.7, 0.72)));
     _.armBase = [
       [-1.45, 0.08],
       [-1.45, -0.08],
     ];
   } else if (e.id === `fuse`) {
-    (s(d, iu(0.335, 0.5), r.accent, 0, 0.04, 0),
-      s(d, nu(0.365, 0.365, 0.035, 24), r.accent, 0, 0.06, 0.02),
-      (s(d, nu(0.078, 0.078, 0.07, 12), r.metal, 0, 0.2, 0.3).rotation.x =
+    (s(d, partialSphereGeometry(0.335, 0.5), r.accent, 0, 0.04, 0),
+      s(d, cylinderGeometry(0.365, 0.365, 0.035, 24), r.accent, 0, 0.06, 0.02),
+      (s(d, cylinderGeometry(0.078, 0.078, 0.07, 12), r.metal, 0, 0.2, 0.3).rotation.x =
         Math.PI / 2));
-    let e = s(d, eu(0.062), i, 0, 0.2, 0.34, 1, 1, 0.4);
+    let e = s(d, sphereGeometry(0.062), i, 0, 0.2, 0.34, 1, 1, 0.4);
     ((e.castShadow = !1),
-      s(d, eu(0.2), r.white, 0, -0.17, 0.14, 1.12, 0.8, 0.72),
+      s(d, sphereGeometry(0.2), r.white, 0, -0.17, 0.14, 1.12, 0.8, 0.72),
       h.position.set(0.31, 0.66, 0.36),
-      s(h, eu(0.15), r.black),
-      s(h, nu(0.035, 0.035, 0.07, 8), r.metal, 0, 0.16, 0));
+      s(h, sphereGeometry(0.15), r.black),
+      s(h, cylinderGeometry(0.035, 0.035, 0.07, 8), r.metal, 0, 0.16, 0));
     let t = s(
       h,
-      eu(0.045),
-      lu(3347456, { emissive: 16747050, emissiveIntensity: 4 }),
+      sphereGeometry(0.045),
+      standardMaterial(3347456, { emissive: 16747050, emissiveIntensity: 4 }),
       0.01,
       0.23,
       0,
     );
     ((t.castShadow = !1),
-      g.push(new H(0.31, 0.8, 0.4)),
+      g.push(new Vector3(0.31, 0.8, 0.4)),
       (_.armBase = [
         [0, 0.12],
         [-1.3, -0.05],
       ]),
       (_.swingLeft = !0));
   } else {
-    (s(d, eu(0.2), r.skin, 0, -0.085, 0.2, 1, 0.78, 0.5),
-      s(d, ru(0.065, 0.2, 0.44), r.accent, 0, 0.27, -0.02));
-    for (let e of [-1, 1]) s(o, eu(0.14), r.accent, e * 0.37, 0.88, 0);
+    (s(d, sphereGeometry(0.2), r.skin, 0, -0.085, 0.2, 1, 0.78, 0.5),
+      s(d, boxGeometry(0.065, 0.2, 0.44), r.accent, 0, 0.27, -0.02));
+    for (let e of [-1, 1]) s(o, sphereGeometry(0.14), r.accent, e * 0.37, 0.88, 0);
     (f.scale.set(1, 0.96, 1),
-      g.push(new H(-0.3, 0.72, 0.55), new H(0.3, 0.72, 0.55)),
+      g.push(new Vector3(-0.3, 0.72, 0.55), new Vector3(0.3, 0.72, 0.55)),
       (_.armBase = [
         [-0.95, 0.25],
         [-0.95, -0.25],
@@ -278,23 +288,23 @@ function uu(e, t) {
     allMats: [...v, i],
   };
 }
-var brawlerId = 1,
-  Brawler = class {
+let nextBrawlerId = 1;
+class Brawler {
     constructor(e, t, n) {
       ((this.game = e),
         (this.def = t),
-        (this.id = brawlerId++),
+        (this.id = nextBrawlerId++),
         (this.isPlayer = !!n.isPlayer),
         (this.name = n.name),
-        (this.model = uu(t, n.hueShift || 0)),
+        (this.model = createBrawlerModel(t, n.hueShift || 0)),
         (this.root = this.model.root),
         this.root.position.set(n.x, 0, n.z),
         e.scene.add(this.root));
       let r = this.isPlayer ? 4063114 : 16730682;
       if (
-        ((this.ring = new Ln(
-          ou,
-          new Tn({ color: r, transparent: !0, opacity: 0.92, depthWrite: !1 }),
+        ((this.ring = new Mesh(
+          brawlerRingGeometry,
+          new MeshBasicMaterial({ color: r, transparent: !0, opacity: 0.92, depthWrite: !1 }),
         )),
         (this.ring.position.y = 0.04),
         (this.ring.renderOrder = 2),
@@ -302,9 +312,9 @@ var brawlerId = 1,
         this.root.add(this.ring),
         this.isPlayer)
       ) {
-        let e = new Ln(
-          su,
-          new Tn({ color: r, transparent: !0, opacity: 0.16, depthWrite: !1 }),
+        let e = new Mesh(
+          playerDiscGeometry,
+          new MeshBasicMaterial({ color: r, transparent: !0, opacity: 0.16, depthWrite: !1 }),
         );
         ((e.position.y = 0.035),
           (e.renderOrder = 2),
@@ -312,10 +322,10 @@ var brawlerId = 1,
           this.root.add(e),
           (this.disc = e));
       }
-      ((this.superRing = new Ln(
-        cu,
-        new Tn({
-          color: new J(3.2, 2.3, 0.4),
+      ((this.superRing = new Mesh(
+        superRingGeometry,
+        new MeshBasicMaterial({
+          color: new Color(3.2, 2.3, 0.4),
           transparent: !0,
           opacity: 0,
           depthWrite: !1,
@@ -336,8 +346,8 @@ var brawlerId = 1,
         (this.alive = !0),
         (this.deadT = 0),
         (this.rank = 0),
-        (this.vel = new V()),
-        (this.knock = new V()),
+        (this.vel = new Vector2()),
+        (this.knock = new Vector2()),
         (this.moveX = 0),
         (this.moveZ = 0),
         (this.facing = Math.atan2(-n.x, -n.z)),
@@ -360,8 +370,8 @@ var brawlerId = 1,
         (this.walkPhase = Math.random() * 6),
         (this.squash = 0),
         (this.spawnT = 0),
-        (this.lightColor = new J(t.attack.color)),
-        (this.superColor = new J(t.super.color)));
+        (this.lightColor = new Color(t.attack.color)),
+        (this.superColor = new Color(t.super.color)));
     }
     get x() {
       return this.root.position.x;
@@ -378,218 +388,194 @@ var brawlerId = 1,
     get airborne() {
       return this.leap !== null;
     }
-    muzzleWorld(e) {
-      let t = this.model.muzzles,
-        n = t[this.muzzleIndex % t.length],
-        r = Math.cos(this.aimAngle),
-        i = Math.sin(this.aimAngle);
-      return (
-        e.set(this.x + n.x * r + n.z * i, n.y, this.z - n.x * i + n.z * r),
-        e
+    muzzleWorld(target) {
+      const muzzles = this.model.muzzles;
+      const muzzle = muzzles[this.muzzleIndex % muzzles.length];
+      const cosAim = Math.cos(this.aimAngle);
+      const sinAim = Math.sin(this.aimAngle);
+      target.set(
+        this.x + muzzle.x * cosAim + muzzle.z * sinAim,
+        muzzle.y,
+        this.z - muzzle.x * sinAim + muzzle.z * cosAim,
       );
+      return target;
     }
     canAct() {
       return this.alive && !this.leap && this.game.state !== `countdown`;
     }
-    attack(e, t, n, r) {
-      return !this.canAct() ||
-        this.ammo < 1 ||
-        this.fireCooldown > 0 ||
-        this.burst
-        ? !1
-        : (--this.ammo, this.startVolley(this.def.attack, e, t, n, r, !1), !0);
+    attack(directionX, directionZ, targetX, targetZ) {
+      if (!this.canAct() || this.ammo < 1 || this.fireCooldown > 0 || this.burst) return false;
+      this.ammo--;
+      this.startVolley(this.def.attack, directionX, directionZ, targetX, targetZ, false);
+      return true;
     }
-    useSuper(e, t, n, r) {
-      return !this.canAct() || !this.superReady || this.burst
-        ? !1
-        : ((this.superCharge = 0),
-          this.startVolley(this.def.super, e, t, n, r, !0),
-          this.game.audio.play(`super`),
-          !0);
+    useSuper(directionX, directionZ, targetX, targetZ) {
+      if (!this.canAct() || !this.superReady || this.burst) return false;
+      this.superCharge = 0;
+      this.startVolley(this.def.super, directionX, directionZ, targetX, targetZ, true);
+      this.game.audio.play(`super`);
+      return true;
     }
-    startVolley(e, t, n, r, i, a) {
-      let o = Math.hypot(t, n) || 1;
-      ((t /= o),
-        (n /= o),
-        (this.aimAngle = Math.atan2(t, n)),
+    startVolley(ability, directionX, directionZ, targetX, targetZ, isSuper) {
+      const directionLength = Math.hypot(directionX, directionZ) || 1;
+      directionX /= directionLength;
+      directionZ /= directionLength;
+      (
+        (this.aimAngle = Math.atan2(directionX, directionZ)),
         (this.aimHold = 0.55),
         (this.lastCombat = this.game.elapsed),
         (this.revealT = Math.max(this.revealT, 0.9)),
         (this.fireCooldown = 0.22));
-      let s = this.game.combat;
-      if (e.kind === `spread`) {
+      const combat = this.game.combat;
+      if (ability.kind === `spread`) {
         this.recoil = 1;
-        let r = this.muzzleWorld(new H());
-        for (let t = 0; t < e.pellets; t++) {
-          let n = e.pellets === 1 ? 0 : t / (e.pellets - 1) - 0.5,
-            i = this.aimAngle + n * e.spread + (Math.random() - 0.5) * 0.04;
-          s.spawnBullet(
+        const muzzlePosition = this.muzzleWorld(new Vector3());
+        for (let pelletIndex = 0; pelletIndex < ability.pellets; pelletIndex++) {
+          const spreadOffset = ability.pellets === 1 ? 0 : pelletIndex / (ability.pellets - 1) - 0.5;
+          const pelletAngle = this.aimAngle + spreadOffset * ability.spread + (Math.random() - 0.5) * 0.04;
+          combat.spawnBullet(
             this,
-            r.x,
-            r.z,
-            Math.sin(i),
-            Math.cos(i),
-            e,
-            a,
-            e.speed * (0.94 + Math.random() * 0.12),
+            muzzlePosition.x,
+            muzzlePosition.z,
+            Math.sin(pelletAngle),
+            Math.cos(pelletAngle),
+            ability,
+            isSuper,
+            ability.speed * (0.94 + Math.random() * 0.12),
           );
         }
         (this.game.effects.muzzle(
-          r.x,
-          r.y,
-          r.z,
-          t,
-          n,
-          this.bulletColor(a),
-          a ? 1.6 : 1.1,
+          muzzlePosition.x,
+          muzzlePosition.y,
+          muzzlePosition.z,
+          directionX,
+          directionZ,
+          this.bulletColor(isSuper),
+          isSuper ? 1.6 : 1.1,
         ),
-          this.game.audio.play(a ? `blastBig` : `blast`, this.x, this.z),
-          a && this.knock.set(-t * 3, -n * 3));
-      } else if (e.kind === `burst` || e.kind === `melee`)
+          this.game.audio.play(isSuper ? `blastBig` : `blast`, this.x, this.z),
+          isSuper && this.knock.set(-directionX * 3, -directionZ * 3));
+      } else if (ability.kind === `burst` || ability.kind === `melee`)
         ((this.burst = {
-          a: e,
-          left: e.count,
+          a: ability,
+          left: ability.count,
           timer: 0,
-          dirX: t,
-          dirZ: n,
-          isSuper: a,
+          dirX: directionX,
+          dirZ: directionZ,
+          isSuper,
         }),
-          (this.fireCooldown = e.count * e.interval + 0.12));
-      else if (e.kind === `lob`) {
+          (this.fireCooldown = ability.count * ability.interval + 0.12));
+      else if (ability.kind === `lob`) {
         this.recoil = 1;
-        let o = Math.min(e.range, Math.hypot(r - this.x, i - this.z)),
-          c = this.muzzleWorld(new H());
-        (s.spawnBomb(this, c.x, c.y, c.z, this.x + t * o, this.z + n * o, e, a),
+        const travelDistance = Math.min(ability.range, Math.hypot(targetX - this.x, targetZ - this.z));
+        const muzzlePosition = this.muzzleWorld(new Vector3());
+        (combat.spawnBomb(this, muzzlePosition.x, muzzlePosition.y, muzzlePosition.z, this.x + directionX * travelDistance, this.z + directionZ * travelDistance, ability, isSuper),
           this.game.audio.play(`lob`, this.x, this.z),
           (this.fireCooldown = 0.3));
-      } else if (e.kind === `leap`) {
-        let a = $c(Math.hypot(r - this.x, i - this.z), 2, e.range),
-          o = this.game.world.nearestOpen(this.x + t * a, this.z + n * a);
-        ((this.leap = { a: e, t: 0, sx: this.x, sz: this.z, tx: o.x, tz: o.z }),
+      } else if (ability.kind === `leap`) {
+        const leapDistance = clamp(Math.hypot(targetX - this.x, targetZ - this.z), 2, ability.range);
+        const landingPosition = this.game.world.nearestOpen(this.x + directionX * leapDistance, this.z + directionZ * leapDistance);
+        ((this.leap = { a: ability, t: 0, sx: this.x, sz: this.z, tx: landingPosition.x, tz: landingPosition.z }),
           this.game.effects.dust(this.x, this.z, 10, 2.4),
           this.game.audio.play(`leap`, this.x, this.z));
       }
     }
-    bulletColor(e) {
-      return e ? this.superColor : this.lightColor;
+    bulletColor(isSuper) {
+      return isSuper ? this.superColor : this.lightColor;
     }
     fireBurstShot() {
-      let e = this.burst,
-        t = e.a;
-      (this.muzzleIndex++, (this.recoil = 1));
-      let n = this.muzzleWorld(new H()),
-        r =
-          Math.atan2(e.dirX, e.dirZ) +
-          (Math.random() - 0.5) * 2 * (t.jitter || 0),
-        i = Math.sin(r),
-        a = Math.cos(r);
-      (this.game.combat.spawnBullet(
+      const burst = this.burst;
+      if (!burst) return;
+      const ability = burst.a;
+      this.muzzleIndex++;
+      this.recoil = 1;
+      const muzzlePosition = this.muzzleWorld(new Vector3());
+      const shotAngle = Math.atan2(burst.dirX, burst.dirZ) + (Math.random() - 0.5) * 2 * (ability.jitter || 0);
+      const directionX = Math.sin(shotAngle);
+      const directionZ = Math.cos(shotAngle);
+      this.game.combat.spawnBullet(
         this,
-        n.x,
-        n.z,
-        i,
-        a,
-        t,
-        e.isSuper,
-        t.speed,
-      ),
-        t.kind === `melee`
-          ? ((this.punch[this.muzzleIndex % 2] = 1),
-            this.game.audio.play(`punch`, this.x, this.z))
-          : (this.game.effects.muzzle(
-              n.x,
-              n.y,
-              n.z,
-              i,
-              a,
-              this.bulletColor(e.isSuper),
-              e.isSuper ? 1.1 : 0.75,
-            ),
-            this.game.audio.play(
-              e.isSuper ? `shotBig` : `shot`,
-              this.x,
-              this.z,
-            )));
-    }
-    addCharge(e) {
-      if (!this.alive) return;
-      let t = this.superReady;
-      ((this.superCharge = Math.min(
-        1,
-        this.superCharge + e / this.def.superCharge,
-      )),
-        !t &&
-          this.superReady &&
-          this.isPlayer &&
-          this.game.audio.play(`ready`));
-    }
-    takeDamage(e, t, n = !1) {
-      if (!this.alive || this.airborne || this.spawnT > 0) return 0;
-      (t &&
-        !t.isPlayer &&
-        (e *= this.isPlayer ? this.game.difficulty.damage : 0.34),
-        t && ((this.lastAttacker = t), (this.lastHitTime = this.game.elapsed)),
-        (e = Math.round(e)));
-      let r = Math.min(this.hp, e);
-      return (
-        (this.hp -= e),
-        (this.lastCombat = this.game.elapsed),
-        (this.regenT = 0),
-        (this.flash = 1),
-        (this.squash = 1),
-        (this.revealT = Math.max(this.revealT, 0.9)),
-        this.def.id === `titan` && this.addCharge(e * 0.35),
-        (!this.hidden || this.isPlayer) &&
-          this.game.hud.floatText(
-            this.x,
-            1.7,
-            this.z,
-            `${e}`,
-            this.isPlayer ? `dmg-self` : `dmg`,
-          ),
-        t && t !== this && (t.addCharge(r), (t.lastCombat = this.game.elapsed)),
-        n || this.game.audio.play(`hit`, this.x, this.z),
-        this.isPlayer && this.game.onPlayerHurt(e),
-        this.hp <= 0 && this.die(t),
-        r
+        muzzlePosition.x, muzzlePosition.z, directionX, directionZ,
+        ability, burst.isSuper, ability.speed,
       );
+      if (ability.kind === `melee`) {
+        this.punch[this.muzzleIndex % 2] = 1;
+        this.game.audio.play(`punch`, this.x, this.z);
+        return;
+      }
+      this.game.effects.muzzle(
+        muzzlePosition.x, muzzlePosition.y, muzzlePosition.z,
+        directionX, directionZ, this.bulletColor(burst.isSuper),
+        burst.isSuper ? 1.1 : 0.75,
+      );
+      this.game.audio.play(burst.isSuper ? `shotBig` : `shot`, this.x, this.z);
     }
-    heal(e) {
+    addCharge(chargeAmount) {
+      if (!this.alive) return;
+      const wasReady = this.superReady;
+      this.superCharge = Math.min(1, this.superCharge + chargeAmount / this.def.superCharge);
+      if (!wasReady && this.superReady && this.isPlayer) this.game.audio.play(`ready`);
+    }
+    takeDamage(rawDamage, attacker, isGasDamage = false) {
+      if (!this.alive || this.airborne || this.spawnT > 0) return 0;
+      let damage = rawDamage;
+      if (attacker && !attacker.isPlayer) damage *= this.isPlayer ? this.game.difficulty.damage : 0.34;
+      if (attacker) {
+        this.lastAttacker = attacker;
+        this.lastHitTime = this.game.elapsed;
+      }
+      damage = Math.round(damage);
+      const absorbedDamage = Math.min(this.hp, damage);
+      this.hp -= damage;
+      this.lastCombat = this.game.elapsed;
+      this.regenT = 0;
+      this.flash = 1;
+      this.squash = 1;
+      this.revealT = Math.max(this.revealT, 0.9);
+      if (this.def.id === `titan`) this.addCharge(damage * 0.35);
+      if (!this.hidden || this.isPlayer) this.game.hud.floatText(this.x, 1.7, this.z, `${damage}`, this.isPlayer ? `dmg-self` : `dmg`);
+      if (attacker && attacker !== this) {
+        attacker.addCharge(absorbedDamage);
+        attacker.lastCombat = this.game.elapsed;
+      }
+      if (!isGasDamage) this.game.audio.play(`hit`, this.x, this.z);
+      if (this.isPlayer) this.game.onPlayerHurt(damage);
+      if (this.hp <= 0) this.die(attacker);
+      return absorbedDamage;
+    }
+    heal(healAmount) {
       if (!this.alive || this.hp >= this.maxHp) return;
-      let t = this.hp;
-      this.hp = Math.min(this.maxHp, this.hp + e);
-      let n = Math.round(this.hp - t);
-      n > 0 &&
-        (!this.hidden || this.isPlayer) &&
-        (this.game.hud.floatText(this.x, 1.7, this.z, `+${n}`, `heal`),
-        this.game.effects.healPuff(this.x, this.z));
+      const previousHp = this.hp;
+      this.hp = Math.min(this.maxHp, this.hp + healAmount);
+      const restoredHp = Math.round(this.hp - previousHp);
+      if (restoredHp > 0 && (!this.hidden || this.isPlayer)) {
+        this.game.hud.floatText(this.x, 1.7, this.z, `+${restoredHp}`, `heal`);
+        this.game.effects.healPuff(this.x, this.z);
+      }
     }
     addCube() {
       this.cubes++;
-      let e = this.hp / this.maxHp;
-      ((this.maxHp += GAME_CONFIG.cubeHp),
-        (this.hp = Math.min(
-          this.maxHp,
-          Math.round(this.maxHp * e) + GAME_CONFIG.cubeHp * 0.5,
-        )),
-        (this.squash = -1));
+      const healthRatio = this.hp / this.maxHp;
+      this.maxHp += GAME_CONFIG.cubeHp;
+      this.hp = Math.min(this.maxHp, Math.round(this.maxHp * healthRatio) + GAME_CONFIG.cubeHp * 0.5);
+      this.squash = -1;
     }
-    die(e) {
-      this.alive &&
-        ((this.alive = !1),
-        (this.hp = 0),
-        (this.deadT = 0),
-        (this.burst = null),
-        (this.leap = null),
-        e && e !== this && e.kills++,
-        this.game.onBrawlerDown(this, e));
+    die(killer) {
+      if (!this.alive) return;
+      this.alive = false;
+      this.hp = 0;
+      this.deadT = 0;
+      this.burst = null;
+      this.leap = null;
+      if (killer && killer !== this) killer.kills++;
+      this.game.onBrawlerDown(this, killer);
     }
     update(e) {
       let t = this.game,
         n = this.model;
       if (!this.alive) {
         this.deadT += e;
-        let t = $c(1 - this.deadT / 0.32, 0, 1);
+        let t = clamp(1 - this.deadT / 0.32, 0, 1);
         (this.root.scale.setScalar(t),
           (this.root.rotation.y += e * 14),
           t <= 0 && (this.root.visible = !1));
@@ -601,10 +587,10 @@ var brawlerId = 1,
         (this.aimHold = Math.max(0, this.aimHold - e)),
         (this.revealT = Math.max(0, this.revealT - e)),
         (this.flash = Math.max(0, this.flash - e * 7)),
-        (this.recoil = nl(this.recoil, 0, 14, e)),
-        (this.punch[0] = nl(this.punch[0], 0, 16, e)),
-        (this.punch[1] = nl(this.punch[1], 0, 16, e)),
-        (this.squash = nl(this.squash, 0, 12, e)),
+        (this.recoil = damp(this.recoil, 0, 14, e)),
+        (this.punch[0] = damp(this.punch[0], 0, 16, e)),
+        (this.punch[1] = damp(this.punch[1], 0, 16, e)),
+        (this.squash = damp(this.squash, 0, 12, e)),
         this.ammo < 3
           ? ((this.reloadT += e / this.def.reload),
             this.reloadT >= 1 &&
@@ -622,9 +608,9 @@ var brawlerId = 1,
       if (this.leap) {
         let i = this.leap;
         i.t += e;
-        let a = $c(i.t / i.a.flight, 0, 1);
-        ((r.x = el(i.sx, i.tx, a)),
-          (r.z = el(i.sz, i.tz, a)),
+        let a = clamp(i.t / i.a.flight, 0, 1);
+        ((r.x = lerp(i.sx, i.tx, a)),
+          (r.z = lerp(i.sz, i.tz, a)),
           (r.y = Math.sin(a * Math.PI) * 3.4),
           (n.body.rotation.x = a * Math.PI * 2),
           (this.aimAngle = Math.atan2(i.tx - i.sx, i.tz - i.sz)),
@@ -655,7 +641,7 @@ var brawlerId = 1,
             : i
               ? Math.atan2(this.vel.x, this.vel.y)
               : this.facing;
-      ((this.facing = il(this.facing, a, this.aimHold > 0 ? 26 : 13, e)),
+      ((this.facing = dampAngle(this.facing, a, this.aimHold > 0 ? 26 : 13, e)),
         (this.root.rotation.y = this.facing));
       let o = this.inBush;
       ((this.inBush = !this.leap && t.world.isBushAt(r.x, r.z)),
@@ -680,8 +666,8 @@ var brawlerId = 1,
           !this.inBush &&
           this.game.effects.footDust(this.x, this.z));
       let a = t ? Math.sin(this.walkPhase) * 0.8 : 0;
-      ((n.legs[0].rotation.x = nl(n.legs[0].rotation.x, a, 20, e)),
-        (n.legs[1].rotation.x = nl(n.legs[1].rotation.x, -a, 20, e)));
+      ((n.legs[0].rotation.x = damp(n.legs[0].rotation.x, a, 20, e)),
+        (n.legs[1].rotation.x = damp(n.legs[1].rotation.x, -a, 20, e)));
       let o = t
           ? Math.abs(Math.cos(this.walkPhase)) * 0.05
           : Math.sin(r * 2.3 + this.id) * 0.012,
@@ -716,7 +702,7 @@ var brawlerId = 1,
         this.disc && (this.disc.position.y = 0.035 - u));
       let d = this.superReady,
         f = this.superRing.material;
-      ((f.opacity = nl(f.opacity, d ? 0.55 + Math.sin(r * 6) * 0.25 : 0, 8, e)),
+      ((f.opacity = damp(f.opacity, d ? 0.55 + Math.sin(r * 6) * 0.25 : 0, 8, e)),
         (this.superRing.visible = f.opacity > 0.01),
         (this.superRing.rotation.y = -this.facing));
     }
@@ -727,18 +713,18 @@ var brawlerId = 1,
         this.superRing.material.dispose(),
         this.disc && this.disc.material.dispose());
     }
-  },
-  pu = new Re(),
-  mu = new _e(),
-  hu = new H(),
-  gu = new H(),
-  _u = new Ke(),
-  vu = new J(),
+  }
+const pu = new Matrix4(),
+  mu = new Quaternion(),
+  hu = new Vector3(),
+  gu = new Vector3(),
+  _u = new Euler(),
+  vu = new Color(),
   yu = 0.64,
   bu = 360;
-function xu() {
+function createLightningTexture() {
   let e = (e) => {
-    let t = al(128, 128),
+    let t = createCanvas(128, 128),
       n = t.getContext(`2d`);
     if (e) ((n.fillStyle = `#000`), n.fillRect(0, 0, 128, 128));
     else {
@@ -764,95 +750,95 @@ function xu() {
         ((n.strokeStyle = `#2aff80`),
         (n.lineWidth = 3),
         n.strokeRect(17, 17, 94, 94)));
-    let r = new cr(t);
-    return ((r.colorSpace = k), r);
+    let r = new CanvasTexture(t);
+    return ((r.colorSpace = SRGBColorSpace), r);
   };
   return { map: e(!1), emissiveMap: e(!0) };
 }
-var Combat = class {
-    constructor(e) {
-      ((this.game = e),
-        (this.bullets = []),
-        (this.bombs = []),
-        (this.boxes = []),
-        (this.cubes = []));
-      let t = new xr(1, 10, 8);
-      ((this.bulletMesh = new Yn(t, new Tn({ color: 16777215 }), bu)),
-        (this.bulletMesh.count = 0),
-        (this.bulletMesh.frustumCulled = !1),
-        (this.bulletMesh.userData.noAO = !0),
-        this.bulletMesh.setColorAt(0, vu.set(1, 1, 1)),
-        e.scene.add(this.bulletMesh),
-        (this.bombPool = []));
-      let n = new xr(0.2, 16, 12),
-        r = new Nr({ color: 1776418, roughness: 0.35, metalness: 0.3 }),
-        i = new xr(0.07, 8, 6);
-      for (let t = 0; t < 14; t++) {
-        let t = new ut(),
-          a = new Ln(n, r);
-        a.castShadow = !0;
-        let o = new Ln(i, new Tn({ color: new J(6, 2.4, 0.5) }));
-        (o.position.set(0, 0.24, 0),
-          (o.userData.noAO = !0),
-          t.add(a, o),
-          (t.visible = !1),
-          e.scene.add(t));
-        let s = new Ln(
-            new br(0.93, 1, 56).rotateX(-Math.PI / 2),
-            new Tn({
-              color: 16728112,
-              transparent: !0,
-              opacity: 0,
-              depthWrite: !1,
-            }),
-          ),
-          c = new Ln(
-            new mr(0.93, 48).rotateX(-Math.PI / 2),
-            new Tn({
+class Combat {
+    constructor(game) {
+      this.game = game;
+      this.bullets = [];
+      this.bombs = [];
+      this.boxes = [];
+      this.cubes = [];
+      const bulletGeometry = new SphereGeometry(1, 10, 8);
+      this.bulletMesh = new InstancedMesh(bulletGeometry, new MeshBasicMaterial({ color: 16777215 }), bu);
+      this.bulletMesh.count = 0;
+      this.bulletMesh.frustumCulled = false;
+      this.bulletMesh.userData.noAO = true;
+      this.bulletMesh.setColorAt(0, vu.set(1, 1, 1));
+      game.scene.add(this.bulletMesh);
+      this.bombPool = [];
+      const bombGeometry = new SphereGeometry(0.2, 16, 12);
+      const bombMaterial = new MeshStandardMaterial({ color: 1776418, roughness: 0.35, metalness: 0.3 });
+      const sparkGeometry = new SphereGeometry(0.07, 8, 6);
+      for (let index = 0; index < 14; index++) {
+        const bombGroup = new Group();
+        const bombMesh = new Mesh(bombGeometry, bombMaterial);
+        bombMesh.castShadow = true;
+        const sparkMesh = new Mesh(sparkGeometry, new MeshBasicMaterial({ color: new Color(6, 2.4, 0.5) }));
+        sparkMesh.position.set(0, 0.24, 0);
+        sparkMesh.userData.noAO = true;
+        bombGroup.add(bombMesh, sparkMesh);
+        bombGroup.visible = false;
+        game.scene.add(bombGroup);
+        const warningRing = new Mesh(
+            new RingGeometry(0.93, 1, 56).rotateX(-Math.PI / 2),
+            new MeshBasicMaterial({
               color: 16728112,
               transparent: !0,
               opacity: 0,
               depthWrite: !1,
             }),
           );
-        (s.add(c),
-          (s.position.y = 0.05),
-          (s.visible = !1),
-          (s.userData.noAO = !0),
-          (s.renderOrder = 2),
-          e.scene.add(s),
-          this.bombPool.push({
-            group: t,
-            ring: s,
-            fillDisc: c,
-            spark: o,
-            busy: !1,
-          }));
+        const warningFill = new Mesh(
+            new CircleGeometry(0.93, 48).rotateX(-Math.PI / 2),
+            new MeshBasicMaterial({
+              color: 16728112,
+              transparent: !0,
+              opacity: 0,
+              depthWrite: !1,
+            }),
+          );
+        warningRing.add(warningFill);
+        warningRing.position.y = 0.05;
+        warningRing.visible = false;
+        warningRing.userData.noAO = true;
+        warningRing.renderOrder = 2;
+        game.scene.add(warningRing);
+        this.bombPool.push({
+            group: bombGroup,
+            ring: warningRing,
+            fillDisc: warningFill,
+            spark: sparkMesh,
+            busy: false,
+        });
       }
-      let a = xu();
-      ((this.boxGeo = new fr(0.92, 0.92, 0.92)),
-        (this.boxTex = a),
-        (this.cubeGeo = new fr(0.34, 0.34, 0.34)),
-        (this.cubeMat = new Nr({
+      const lightningTextures = createLightningTexture();
+      this.boxGeo = new BoxGeometry(0.92, 0.92, 0.92);
+      this.boxTex = lightningTextures;
+      this.cubeGeo = new BoxGeometry(0.34, 0.34, 0.34);
+      this.cubeMat = new MeshStandardMaterial({
           color: 1870410,
           emissive: 3211136,
           emissiveIntensity: 2.4,
           roughness: 0.25,
           metalness: 0.2,
-        })),
-        (this.cubeLight = new J(4259722)),
-        (this.orange = new J(16747066)));
+      });
+      this.cubeLight = new Color(4259722);
+      this.orange = new Color(16747066);
     }
     addBox(e, t) {
       let n = this.game.world,
-        r = new Nr({
+        r = new MeshStandardMaterial({
           map: this.boxTex.map,
           emissiveMap: this.boxTex.emissiveMap,
           emissive: 16777215,
           emissiveIntensity: 1.4,
           roughness: 0.7,
         }),
-        i = new Ln(this.boxGeo, r);
+        i = new Mesh(this.boxGeo, r);
       (i.position.set(n.center(e), 0.46, n.center(t)),
         (i.castShadow = !0),
         (i.receiveShadow = !0),
@@ -896,7 +882,7 @@ var Combat = class {
           this.spawnCube(e.x, e.z, e.x, e.z)));
     }
     spawnCube(e, t, n, r) {
-      let i = new Ln(this.cubeGeo, this.cubeMat);
+      let i = new Mesh(this.cubeGeo, this.cubeMat);
       ((i.castShadow = !0),
         i.position.set(e, 0.5, t),
         this.game.scene.add(i),
@@ -1088,7 +1074,7 @@ var Combat = class {
             ((s.alive = !1), i.impact(s.x, yu, s.z, s.color, 2));
         }
         if (!s.alive) continue;
-        let l = $c((s.range - s.travel) / 0.8, 0.35, 1),
+        let l = clamp((s.range - s.travel) / 0.8, 0.35, 1),
           u = s.melee ? s.radius * 1.2 : s.radius * (s.isSuper ? 3.6 : 3),
           d = s.radius * (s.melee ? 1 : 0.8) * l;
         (_u.set(0, Math.atan2(s.dx, s.dz), 0),
@@ -1124,15 +1110,15 @@ var Combat = class {
           ((n.fuse -= e), (a.group.position.y = 0.2 * a.group.scale.x));
         else {
           n.t += e;
-          let t = $c(n.t / o.flight, 0, 1),
+          let t = clamp(n.t / o.flight, 0, 1),
             r = o.big ? 4.4 : 3.3,
-            s = el(n.sy, 0.2, t) + Math.sin(t * Math.PI) * r;
-          (a.group.position.set(el(n.sx, n.tx, t), s, el(n.sz, n.tz, t)),
+            s = lerp(n.sy, 0.2, t) + Math.sin(t * Math.PI) * r;
+          (a.group.position.set(lerp(n.sx, n.tx, t), s, lerp(n.sz, n.tz, t)),
             (a.group.rotation.x += e * 9),
             (a.group.rotation.z += e * 5),
             t >= 1 && ((n.landed = !0), i.dust(n.tx, n.tz, 4, 1.4)));
         }
-        let s = n.landed ? 1 - $c(n.fuse / o.fuse, 0, 1) : 0,
+        let s = n.landed ? 1 - clamp(n.fuse / o.fuse, 0, 1) : 0,
           c = 0.5 + 0.5 * Math.sin(t.elapsed * (14 + s * 30));
         (a.spark.scale.setScalar(0.8 + c * 0.9),
           (a.ring.material.opacity = 0.55 + c * 0.35),
@@ -1160,9 +1146,9 @@ var Combat = class {
       }
       for (let n of this.cubes) {
         n.t += e;
-        let a = $c(n.t / 0.45, 0, 1),
-          o = el(n.sx, n.x, a),
-          s = el(n.sz, n.z, a),
+        let a = clamp(n.t / 0.45, 0, 1),
+          o = lerp(n.sx, n.x, a),
+          s = lerp(n.sz, n.z, a),
           c =
             0.42 +
             Math.sin(a * Math.PI) * 1.1 +
@@ -1206,13 +1192,13 @@ var Combat = class {
       for (let t of this.cubes) e.remove(t.mesh);
       this.cubes.length = 0;
     }
-  },
-  Cu = new Re(),
-  wu = new _e(),
-  Tu = new H(),
-  Eu = new H(),
-  Du = new Ke(),
-  Ou = new J(),
+  }
+const Cu = new Matrix4(),
+  wu = new Quaternion(),
+  Tu = new Vector3(),
+  Eu = new Vector3(),
+  Du = new Euler(),
+  Ou = new Color(),
   ku = `
   attribute vec4 aColor;
   attribute float aSize;
@@ -1232,101 +1218,93 @@ var Combat = class {
     float a = smoothstep( 0.5, 0.12, d ) * vColor.a;
     if ( a < 0.004 ) discard;
     gl_FragColor = vec4( vColor.rgb * uDim, a );
-  }`,
-  ju = class {
-    constructor(e, t, n) {
-      ((this.cap = t), (this.cursor = 0), (this.additive = n));
-      let r = t;
-      ((this.pos = new Float32Array(r * 3)),
-        (this.col = new Float32Array(r * 4)),
-        (this.size = new Float32Array(r)),
-        (this.vel = new Float32Array(r * 3)),
-        (this.life = new Float32Array(r)),
-        (this.maxLife = new Float32Array(r)),
-        (this.size0 = new Float32Array(r)),
-        (this.size1 = new Float32Array(r)),
-        (this.alpha = new Float32Array(r)),
-        (this.drag = new Float32Array(r)),
-        (this.grav = new Float32Array(r)));
-      let i = new pn();
-      (i.setAttribute(`position`, new Zt(this.pos, 3).setUsage(N)),
-        i.setAttribute(`aColor`, new Zt(this.col, 4).setUsage(N)),
-        i.setAttribute(`aSize`, new Zt(this.size, 1).setUsage(N)),
-        (this.material = new jr({
+  }`;
+class ParticlePool {
+    constructor(scene, capacity, additive) {
+      this.cap = capacity;
+      this.cursor = 0;
+      this.additive = additive;
+      this.pos = new Float32Array(capacity * 3);
+      this.col = new Float32Array(capacity * 4);
+      this.size = new Float32Array(capacity);
+      this.vel = new Float32Array(capacity * 3);
+      this.life = new Float32Array(capacity);
+      this.maxLife = new Float32Array(capacity);
+      this.size0 = new Float32Array(capacity);
+      this.size1 = new Float32Array(capacity);
+      this.alpha = new Float32Array(capacity);
+      this.drag = new Float32Array(capacity);
+      this.grav = new Float32Array(capacity);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute(`position`, new BufferAttribute(this.pos, 3).setUsage(DynamicDrawUsage));
+      geometry.setAttribute(`aColor`, new BufferAttribute(this.col, 4).setUsage(DynamicDrawUsage));
+      geometry.setAttribute(`aSize`, new BufferAttribute(this.size, 1).setUsage(DynamicDrawUsage));
+      this.material = new ShaderMaterial({
           uniforms: { uScale: { value: 600 }, uDim: { value: 1 } },
           vertexShader: ku,
           fragmentShader: Au,
           transparent: !0,
           depthWrite: !1,
-          blending: n ? 2 : 1,
-        })),
-        (this.points = new ar(i, this.material)),
-        (this.points.frustumCulled = !1),
-        (this.points.renderOrder = n ? 8 : 7),
-        e.add(this.points));
+          blending: additive ? 2 : 1,
+      });
+      this.points = new Points(geometry, this.material);
+      this.points.frustumCulled = false;
+      this.points.renderOrder = additive ? 8 : 7;
+      scene.add(this.points);
     }
-    emit(e, t, n, r, i, a, o, s, c, l, u, d, f = 1, p = 1.5, m = 0) {
-      let h = this.cursor;
-      ((this.cursor = (h + 1) % this.cap),
-        (this.pos[h * 3] = e),
-        (this.pos[h * 3 + 1] = t),
-        (this.pos[h * 3 + 2] = n),
-        (this.vel[h * 3] = r),
-        (this.vel[h * 3 + 1] = i),
-        (this.vel[h * 3 + 2] = a),
-        (this.life[h] = o),
-        (this.maxLife[h] = o),
-        (this.size0[h] = s),
-        (this.size1[h] = c),
-        (this.col[h * 4] = l),
-        (this.col[h * 4 + 1] = u),
-        (this.col[h * 4 + 2] = d),
-        (this.alpha[h] = f),
-        (this.drag[h] = p),
-        (this.grav[h] = m));
+    emit(x, y, z, velocityX, velocityY, velocityZ, lifetime, startSize, endSize, red, green, blue, alpha = 1, drag = 1.5, gravity = 0) {
+      const index = this.cursor;
+      this.cursor = (index + 1) % this.cap;
+      this.pos[index * 3] = x;
+      this.pos[index * 3 + 1] = y;
+      this.pos[index * 3 + 2] = z;
+      this.vel[index * 3] = velocityX;
+      this.vel[index * 3 + 1] = velocityY;
+      this.vel[index * 3 + 2] = velocityZ;
+      this.life[index] = lifetime;
+      this.maxLife[index] = lifetime;
+      this.size0[index] = startSize;
+      this.size1[index] = endSize;
+      this.col[index * 4] = red;
+      this.col[index * 4 + 1] = green;
+      this.col[index * 4 + 2] = blue;
+      this.alpha[index] = alpha;
+      this.drag[index] = drag;
+      this.grav[index] = gravity;
     }
-    update(e) {
+    update(deltaTime) {
       let {
-        pos: t,
-        vel: n,
-        life: r,
-        maxLife: i,
-        size: a,
-        size0: o,
-        size1: s,
-        col: c,
-        alpha: l,
-        drag: u,
-        grav: d,
+        pos, vel, life, maxLife, size, size0, size1, col, alpha, drag, grav,
       } = this;
-      for (let f = 0; f < this.cap; f++) {
-        if (r[f] <= 0) {
-          a[f] = 0;
+      for (let index = 0; index < this.cap; index++) {
+        if (life[index] <= 0) {
+          size[index] = 0;
           continue;
         }
-        r[f] -= e;
-        let p = 1 - Math.max(0, r[f]) / i[f],
-          m = Math.exp(-u[f] * e);
-        ((n[f * 3] *= m),
-          (n[f * 3 + 1] = n[f * 3 + 1] * m - d[f] * e),
-          (n[f * 3 + 2] *= m),
-          (t[f * 3] += n[f * 3] * e),
-          (t[f * 3 + 1] += n[f * 3 + 1] * e),
-          (t[f * 3 + 2] += n[f * 3 + 2] * e),
-          t[f * 3 + 1] < 0.03 &&
-            d[f] > 0 &&
-            ((t[f * 3 + 1] = 0.03), (n[f * 3 + 1] *= -0.35)),
-          (a[f] = r[f] <= 0 ? 0 : o[f] + (s[f] - o[f]) * p),
-          (c[f * 4 + 3] = l[f] * (1 - p * p)));
+        life[index] -= deltaTime;
+        const progress = 1 - Math.max(0, life[index]) / maxLife[index];
+        const dragFactor = Math.exp(-drag[index] * deltaTime);
+        vel[index * 3] *= dragFactor;
+        vel[index * 3 + 1] = vel[index * 3 + 1] * dragFactor - grav[index] * deltaTime;
+        vel[index * 3 + 2] *= dragFactor;
+        pos[index * 3] += vel[index * 3] * deltaTime;
+        pos[index * 3 + 1] += vel[index * 3 + 1] * deltaTime;
+        pos[index * 3 + 2] += vel[index * 3 + 2] * deltaTime;
+        if (pos[index * 3 + 1] < 0.03 && grav[index] > 0) {
+          pos[index * 3 + 1] = 0.03;
+          vel[index * 3 + 1] *= -0.35;
+        }
+        size[index] = life[index] <= 0 ? 0 : size0[index] + (size1[index] - size0[index]) * progress;
+        col[index * 4 + 3] = alpha[index] * (1 - progress * progress);
       }
-      let f = this.points.geometry;
-      ((f.attributes.position.needsUpdate = !0),
-        (f.attributes.aColor.needsUpdate = !0),
-        (f.attributes.aSize.needsUpdate = !0));
+      const particleGeometry = this.points.geometry;
+      particleGeometry.attributes.position.needsUpdate = true;
+      particleGeometry.attributes.aColor.needsUpdate = true;
+      particleGeometry.attributes.aSize.needsUpdate = true;
     }
   };
-function Mu() {
-  let e = al(128, 128),
+function createSmokeTexture() {
+  let e = createCanvas(128, 128),
     t = e.getContext(`2d`),
     n = t.createRadialGradient(64, 64, 4, 64, 64, 62);
   (n.addColorStop(0, `rgba(10,6,4,0.85)`),
@@ -1349,19 +1327,19 @@ function Mu() {
       ),
       t.fill());
   }
-  return new cr(e);
+  return new CanvasTexture(e);
 }
-var Effects = class {
+class Effects {
     constructor(e) {
       this.game = e;
       let t = e.scene;
-      ((this.glow = new ju(t, 1800, !0)),
-        (this.smoke = new ju(t, 900, !1)),
+      ((this.glow = new ParticlePool(t, 1800, !0)),
+        (this.smoke = new ParticlePool(t, 900, !1)),
         (this.flashes = []),
         (this.debrisCap = 140),
-        (this.debrisMesh = new Yn(
-          new fr(1, 1, 1),
-          new Nr({ color: 16777215, roughness: 0.85 }),
+        (this.debrisMesh = new InstancedMesh(
+          new BoxGeometry(1, 1, 1),
+          new MeshStandardMaterial({ color: 16777215, roughness: 0.85 }),
           this.debrisCap,
         )),
         (this.debrisMesh.castShadow = !0),
@@ -1388,12 +1366,12 @@ var Effects = class {
           this.debrisMesh.setMatrixAt(e, Cu.makeScale(0, 0, 0)),
           this.debrisMesh.setColorAt(e, Ou.set(16777215)));
       ((this.debrisCursor = 0), t.add(this.debrisMesh), (this.decals = []));
-      let n = Mu(),
-        r = new yr(1, 1).rotateX(-Math.PI / 2);
+      let n = createSmokeTexture(),
+        r = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
       for (let e = 0; e < 18; e++) {
-        let e = new Ln(
+        let e = new Mesh(
           r,
-          new Tn({
+          new MeshBasicMaterial({
             map: n,
             transparent: !0,
             opacity: 0,
@@ -1408,11 +1386,11 @@ var Effects = class {
           this.decals.push({ mesh: e, life: 0 }));
       }
       ((this.decalCursor = 0), (this.rings = []));
-      let i = new br(0.82, 1, 64).rotateX(-Math.PI / 2);
+      let i = new RingGeometry(0.82, 1, 64).rotateX(-Math.PI / 2);
       for (let e = 0; e < 10; e++) {
-        let e = new Ln(
+        let e = new Mesh(
           i,
-          new Tn({
+          new MeshBasicMaterial({
             color: 16777215,
             transparent: !0,
             opacity: 0,
@@ -1434,21 +1412,21 @@ var Effects = class {
         n = e.meshes.bush,
         r = new Float32Array(270),
         i = new Float32Array(90),
-        a = new Re();
+        a = new Matrix4();
       for (let e = 0; e < 90; e++)
         (n && n.count > 0
           ? (n.getMatrixAt(Math.floor(Math.random() * n.count), a),
             Tu.setFromMatrixPosition(a))
-          : Tu.set(Q(-18, 18), 0, Q(-18, 18)),
-          (r[e * 3] = Tu.x + Q(-1.4, 1.4)),
-          (r[e * 3 + 1] = Q(0.5, 1.9)),
-          (r[e * 3 + 2] = Tu.z + Q(-1.4, 1.4)),
+          : Tu.set(randomRange(-18, 18), 0, randomRange(-18, 18)),
+          (r[e * 3] = Tu.x + randomRange(-1.4, 1.4)),
+          (r[e * 3 + 1] = randomRange(0.5, 1.9)),
+          (r[e * 3 + 2] = Tu.z + randomRange(-1.4, 1.4)),
           (i[e] = Math.random() * 100),
           t.push(e));
-      let o = new pn();
-      (o.setAttribute(`position`, new Zt(r, 3)),
-        o.setAttribute(`aPhase`, new Zt(i, 1)),
-        (this.fireflyMat = new jr({
+      let o = new BufferGeometry();
+      (o.setAttribute(`position`, new BufferAttribute(r, 3)),
+        o.setAttribute(`aPhase`, new BufferAttribute(i, 1)),
+        (this.fireflyMat = new ShaderMaterial({
           uniforms: {
             uTime: { value: 0 },
             uNight: { value: 0 },
@@ -1480,7 +1458,7 @@ var Effects = class {
           depthWrite: !1,
           blending: 2,
         })),
-        (this.fireflies = new ar(o, this.fireflyMat)),
+        (this.fireflies = new Points(o, this.fireflyMat)),
         (this.fireflies.frustumCulled = !1),
         (this.fireflies.renderOrder = 9),
         this.game.scene.add(this.fireflies));
@@ -1508,10 +1486,10 @@ var Effects = class {
         e,
         t,
         n,
-        Q(-1.4, 1.4),
-        Q(0.6, 2.6),
-        Q(-1.4, 1.4),
-        Q(0.18, 0.4),
+        randomRange(-1.4, 1.4),
+        randomRange(0.6, 2.6),
+        randomRange(-1.4, 1.4),
+        randomRange(0.18, 0.4),
         0.14,
         0.02,
         r.r * 5,
@@ -1524,9 +1502,9 @@ var Effects = class {
     }
     trail(e, t, n, r, i) {
       this.glow.emit(
-        e + Q(-0.04, 0.04),
-        t + Q(-0.04, 0.04),
-        n + Q(-0.04, 0.04),
+        e + randomRange(-0.04, 0.04),
+        t + randomRange(-0.04, 0.04),
+        n + randomRange(-0.04, 0.04),
         0,
         0,
         0,
@@ -1544,15 +1522,15 @@ var Effects = class {
     impact(e, t, n, r, i) {
       for (let a = 0; a < i; a++) {
         let i = Math.random() * 6.28,
-          a = Q(1.5, 5);
+          a = randomRange(1.5, 5);
         this.glow.emit(
           e,
           t,
           n,
           Math.cos(i) * a,
-          Q(0.5, 3.5),
+          randomRange(0.5, 3.5),
           Math.sin(i) * a,
-          Q(0.15, 0.35),
+          randomRange(0.15, 0.35),
           0.15,
           0.02,
           r.r * 3.2,
@@ -1584,15 +1562,15 @@ var Effects = class {
     burst(e, t, n, r, i, a) {
       for (let o = 0; o < i; o++) {
         let i = Math.random() * 6.28,
-          o = Q(0.4, 1) * a;
+          o = randomRange(0.4, 1) * a;
         this.glow.emit(
           e,
           t,
           n,
           Math.cos(i) * o,
-          Q(1, 4.5),
+          randomRange(1, 4.5),
           Math.sin(i) * o,
-          Q(0.35, 0.7),
+          randomRange(0.35, 0.7),
           0.2,
           0.03,
           r.r * 4,
@@ -1625,16 +1603,16 @@ var Effects = class {
         ));
       for (let o = 0; o < 5; o++) {
         let o = 0.5,
-          s = r * Q(4, 9) + Q(-0.5, o) * 3,
-          c = i * Q(4, 9) + Q(-0.5, o) * 3;
+          s = r * randomRange(4, 9) + randomRange(-0.5, o) * 3,
+          c = i * randomRange(4, 9) + randomRange(-0.5, o) * 3;
         this.glow.emit(
           e,
           t,
           n,
           s,
-          Q(-0.5, 1.5),
+          randomRange(-0.5, 1.5),
           c,
-          Q(0.08, 0.2),
+          randomRange(0.08, 0.2),
           0.13,
           0.02,
           a.r * 5,
@@ -1666,15 +1644,15 @@ var Effects = class {
     dust(e, t, n, r) {
       for (let i = 0; i < n; i++) {
         let n = Math.random() * 6.28,
-          i = Q(0.4, 1) * r;
+          i = randomRange(0.4, 1) * r;
         this.smoke.emit(
           e + Math.cos(n) * 0.2,
           0.12,
           t + Math.sin(n) * 0.2,
           Math.cos(n) * i,
-          Q(0.2, 0.9),
+          randomRange(0.2, 0.9),
           Math.sin(n) * i,
-          Q(0.5, 0.95),
+          randomRange(0.5, 0.95),
           0.35,
           1.1,
           0.78,
@@ -1688,12 +1666,12 @@ var Effects = class {
     }
     footDust(e, t) {
       this.smoke.emit(
-        e + Q(-0.1, 0.1),
+        e + randomRange(-0.1, 0.1),
         0.06,
-        t + Q(-0.1, 0.1),
-        Q(-0.2, 0.2),
+        t + randomRange(-0.1, 0.1),
+        randomRange(-0.2, 0.2),
         0.35,
-        Q(-0.2, 0.2),
+        randomRange(-0.2, 0.2),
         0.42,
         0.16,
         0.5,
@@ -1709,13 +1687,13 @@ var Effects = class {
       for (let r = 0; r < n; r++) {
         let n = Math.random() * 6.28;
         this.smoke.emit(
-          e + Q(-0.3, 0.3),
-          Q(0.3, 0.9),
-          t + Q(-0.3, 0.3),
-          Math.cos(n) * Q(0.6, 2.2),
-          Q(1.2, 3),
-          Math.sin(n) * Q(0.6, 2.2),
-          Q(0.5, 0.9),
+          e + randomRange(-0.3, 0.3),
+          randomRange(0.3, 0.9),
+          t + randomRange(-0.3, 0.3),
+          Math.cos(n) * randomRange(0.6, 2.2),
+          randomRange(1.2, 3),
+          Math.sin(n) * randomRange(0.6, 2.2),
+          randomRange(0.5, 0.9),
           0.17,
           0.1,
           0.3,
@@ -1730,13 +1708,13 @@ var Effects = class {
     healPuff(e, t) {
       for (let n = 0; n < 5; n++)
         this.glow.emit(
-          e + Q(-0.4, 0.4),
-          Q(0.4, 1.2),
-          t + Q(-0.4, 0.4),
+          e + randomRange(-0.4, 0.4),
+          randomRange(0.4, 1.2),
+          t + randomRange(-0.4, 0.4),
           0,
-          Q(0.8, 1.6),
+          randomRange(0.8, 1.6),
           0,
-          Q(0.4, 0.7),
+          randomRange(0.4, 0.7),
           0.16,
           0.04,
           0.5,
@@ -1753,22 +1731,22 @@ var Effects = class {
         this.debrisCursor = (i + 1) % this.debrisCap;
         let a = this.debrisData[i],
           o = Math.random() * 6.28,
-          s = Q(1.2, 4.2);
-        ((a.life = Q(1.6, 2.6)),
-          (a.x = e + Q(-0.3, 0.3)),
-          (a.y = t + Q(-0.2, 0.4)),
-          (a.z = n + Q(-0.3, 0.3)),
+          s = randomRange(1.2, 4.2);
+        ((a.life = randomRange(1.6, 2.6)),
+          (a.x = e + randomRange(-0.3, 0.3)),
+          (a.y = t + randomRange(-0.2, 0.4)),
+          (a.z = n + randomRange(-0.3, 0.3)),
           (a.vx = Math.cos(o) * s),
-          (a.vy = Q(3, 7)),
+          (a.vy = randomRange(3, 7)),
           (a.vz = Math.sin(o) * s),
-          (a.rx = Q(0, 6)),
-          (a.ry = Q(0, 6)),
-          (a.rz = Q(0, 6)),
-          (a.wx = Q(-9, 9)),
-          (a.wy = Q(-9, 9)),
-          (a.wz = Q(-9, 9)),
-          (a.s = Q(0.12, 0.27)),
-          Ou.set(r).offsetHSL(0, 0, Q(-0.06, 0.06)),
+          (a.rx = randomRange(0, 6)),
+          (a.ry = randomRange(0, 6)),
+          (a.rz = randomRange(0, 6)),
+          (a.wx = randomRange(-9, 9)),
+          (a.wy = randomRange(-9, 9)),
+          (a.wz = randomRange(-9, 9)),
+          (a.s = randomRange(0.12, 0.27)),
+          Ou.set(r).offsetHSL(0, 0, randomRange(-0.06, 0.06)),
           this.debrisMesh.setColorAt(i, Ou));
       }
       this.debrisMesh.instanceColor.needsUpdate = !0;
@@ -1816,17 +1794,17 @@ var Effects = class {
         ));
       for (let r = 0; r < a; r++) {
         let r = Math.random() * 6.28,
-          i = Q(0.3, 1) * n * 4.2,
+          i = randomRange(0.3, 1) * n * 4.2,
           a = Math.random();
         this.glow.emit(
           e,
           0.4,
           t,
           Math.cos(r) * i,
-          Q(1, 6),
+          randomRange(1, 6),
           Math.sin(r) * i,
-          Q(0.3, 0.75),
-          Q(0.25, 0.6),
+          randomRange(0.3, 0.75),
+          randomRange(0.25, 0.6),
           0.04,
           (1 + a) * 3.2,
           (0.4 + a * 0.6) * 3,
@@ -1838,15 +1816,15 @@ var Effects = class {
       }
       for (let r = 0; r < (i ? 16 : 9); r++) {
         let r = Math.random() * 6.28,
-          i = Q(0.2, 1) * n * 1.6;
+          i = randomRange(0.2, 1) * n * 1.6;
         this.smoke.emit(
           e + Math.cos(r) * 0.3,
-          Q(0.3, 0.9),
+          randomRange(0.3, 0.9),
           t + Math.sin(r) * 0.3,
           Math.cos(r) * i,
-          Q(0.8, 2.6),
+          randomRange(0.8, 2.6),
           Math.sin(r) * i,
-          Q(0.9, 1.7),
+          randomRange(0.9, 1.7),
           n * 0.7,
           n * 1.9,
           0.22,
@@ -1866,15 +1844,15 @@ var Effects = class {
         this.dust(e, t, 22, n * 3.2));
       for (let n = 0; n < 18; n++) {
         let n = Math.random() * 6.28,
-          i = Q(2, 7);
+          i = randomRange(2, 7);
         this.glow.emit(
           e,
           0.2,
           t,
           Math.cos(n) * i,
-          Q(1, 4),
+          randomRange(1, 4),
           Math.sin(n) * i,
-          Q(0.25, 0.5),
+          randomRange(0.25, 0.5),
           0.2,
           0.03,
           r.r * 4,
@@ -1892,13 +1870,13 @@ var Effects = class {
         this.burst(e, 0.8, t, n, 26, 5));
       for (let n = 0; n < 8; n++)
         this.smoke.emit(
-          e + Q(-0.3, 0.3),
-          Q(0.3, 1.2),
-          t + Q(-0.3, 0.3),
-          Q(-0.6, 0.6),
-          Q(0.8, 2),
-          Q(-0.6, 0.6),
-          Q(0.7, 1.2),
+          e + randomRange(-0.3, 0.3),
+          randomRange(0.3, 1.2),
+          t + randomRange(-0.3, 0.3),
+          randomRange(-0.6, 0.6),
+          randomRange(0.8, 2),
+          randomRange(-0.6, 0.6),
+          randomRange(0.7, 1.2),
           0.5,
           1.4,
           0.85,
@@ -1913,20 +1891,23 @@ var Effects = class {
       let t = this.game,
         n = t.lighting,
         r =
-          t.pipeline.renderer.getDrawingBufferSize(new V()).y /
+          t.pipeline.renderer.getDrawingBufferSize(new Vector2()).y /
           (2 * Math.tan((t.camera.fov * Math.PI) / 360));
-      ((this.glow.material.uniforms.uScale.value = r),
-        (this.smoke.material.uniforms.uScale.value = r),
-        (this.smoke.material.uniforms.uDim.value = n.ambientLevel),
-        (this.fireflyMat.uniforms.uScale.value = r),
-        (this.fireflyMat.uniforms.uTime.value = t.elapsed),
-        (this.fireflyMat.uniforms.uNight.value = n.night),
-        (this.fireflies.visible = n.night > 0.01),
-        this.glow.update(e),
-        this.smoke.update(e));
+      const glowUniforms = this.glow.material?.uniforms;
+      const smokeUniforms = this.smoke.material?.uniforms;
+      const fireflyUniforms = this.fireflyMat?.uniforms;
+      if (glowUniforms?.uScale) glowUniforms.uScale.value = r;
+      if (smokeUniforms?.uScale) smokeUniforms.uScale.value = r;
+      if (smokeUniforms?.uDim) smokeUniforms.uDim.value = n.ambientLevel;
+      if (fireflyUniforms?.uScale) fireflyUniforms.uScale.value = r;
+      if (fireflyUniforms?.uTime) fireflyUniforms.uTime.value = t.elapsed;
+      if (fireflyUniforms?.uNight) fireflyUniforms.uNight.value = n.night;
+      this.fireflies.visible = n.night > 0.01;
+      this.glow.update(e);
+      this.smoke.update(e);
       for (let t of this.flashes) {
         t.t += e;
-        let r = 1 - $c(t.t / t.T, 0, 1);
+        let r = 1 - clamp(t.t / t.T, 0, 1);
         n.addLight(t.x, t.y, t.z, t.color, t.intensity * r * r, t.distance);
       }
       this.flashes = this.flashes.filter((e) => e.t < e.T);
@@ -1952,7 +1933,7 @@ var Effects = class {
           (n.rx += n.wx * e),
           (n.ry += n.wy * e),
           (n.rz += n.wz * e));
-        let a = n.life <= 0 ? 0 : n.s * $c(n.life / 0.4, 0, 1);
+        let a = n.life <= 0 ? 0 : n.s * clamp(n.life / 0.4, 0, 1);
         (Du.set(n.rx, n.ry, n.rz),
           wu.setFromEuler(Du),
           Cu.compose(Tu.set(n.x, n.y, n.z), wu, Eu.set(a, a, a)),
@@ -1962,20 +1943,20 @@ var Effects = class {
       for (let t of this.decals)
         t.life <= 0 ||
           ((t.life -= e),
-          (t.mesh.material.opacity = $c(t.life / 4, 0, 1) * 0.55),
+          (t.mesh.material.opacity = clamp(t.life / 4, 0, 1) * 0.55),
           t.life <= 0 && (t.mesh.visible = !1));
       for (let t of this.rings) {
         if (!t.mesh.visible) continue;
         t.t += e;
-        let n = $c(t.t / t.T, 0, 1),
+        let n = clamp(t.t / t.T, 0, 1),
           r = 1 - (1 - n) * (1 - n);
         (t.mesh.scale.setScalar(0.2 + r * t.r),
           (t.mesh.material.opacity = (1 - n) * 0.9),
           n >= 1 && (t.mesh.visible = !1));
       }
     }
-  },
-  Pu = `
+  }
+const Pu = `
   varying vec3 vWorld;
   void main() {
     vec4 w = modelMatrix * vec4( position, 1.0 );
@@ -2024,8 +2005,8 @@ var Effects = class {
     col += vec3( 0.28, 1.45, 0.4 ) * rim * uGlow;
     gl_FragColor = vec4( col, clamp( dens * uAlpha + rim * 0.25, 0.0, 0.95 ) );
   }`,
-  Iu = [0.34, 0.3, 0.26],
-  GasRing = class {
+  Iu = [0.34, 0.3, 0.26];
+class GasRing {
     constructor(e) {
       ((this.game = e),
         (this.half = GAME_CONFIG.gasStartHalf),
@@ -2033,9 +2014,9 @@ var Effects = class {
         (this.layers = []),
         (this.tickT = 0),
         (this.ticks = 0));
-      let t = new yr(104, 104).rotateX(-Math.PI / 2);
+      let t = new PlaneGeometry(104, 104).rotateX(-Math.PI / 2);
       ([0.3, 0.72, 1.12].forEach((n, r) => {
-        let i = new jr({
+        let i = new ShaderMaterial({
             uniforms: {
               uTime: { value: 0 },
               uHalf: { value: this.half },
@@ -2050,7 +2031,7 @@ var Effects = class {
             transparent: !0,
             depthWrite: !1,
           }),
-          a = new Ln(t, i);
+          a = new Mesh(t, i);
         ((a.position.y = n),
           (a.renderOrder = 4),
           (a.userData.noAO = !0),
@@ -2078,22 +2059,23 @@ var Effects = class {
     }
     update(e, t) {
       let n = this.game,
-        r = $c((t - GAME_CONFIG.gasDelay) / GAME_CONFIG.gasDuration, 0, 1);
+        r = clamp((t - GAME_CONFIG.gasDelay) / GAME_CONFIG.gasDuration, 0, 1);
       ((this.active = t > GAME_CONFIG.gasDelay - 6),
-        (this.half = el(GAME_CONFIG.gasStartHalf, GAME_CONFIG.gasEndHalf, r)),
-        (this.round = el(5, 2.2, r)));
-      let i = tl(GAME_CONFIG.gasDelay - 6, GAME_CONFIG.gasDelay, t);
+        (this.half = lerp(GAME_CONFIG.gasStartHalf, GAME_CONFIG.gasEndHalf, r)),
+        (this.round = lerp(5, 2.2, r)));
+      let i = smoothstep(GAME_CONFIG.gasDelay - 6, GAME_CONFIG.gasDelay, t);
       if (
         (this.layers.forEach((e, t) => {
           e.visible = this.active;
-          let r = e.material.uniforms;
-          ((r.uTime.value = n.elapsed),
-            (r.uHalf.value = this.half),
-            (r.uRound.value = this.round));
-          let a = $c((n.lighting.ambientLevel - 0.36) / 0.64, 0, 1);
-          ((r.uAmbient.value = el(0.2, 1, a)),
-            (r.uGlow.value = (0.55 + n.lighting.night * 0.3) * i),
-            (r.uAlpha.value = Iu[t] * i));
+          const uniforms = e.material?.uniforms;
+          if (!uniforms) return;
+          if (uniforms.uTime) uniforms.uTime.value = n.elapsed;
+          if (uniforms.uHalf) uniforms.uHalf.value = this.half;
+          if (uniforms.uRound) uniforms.uRound.value = this.round;
+          let a = clamp((n.lighting.ambientLevel - 0.36) / 0.64, 0, 1);
+          if (uniforms.uAmbient) uniforms.uAmbient.value = lerp(0.2, 1, a);
+          if (uniforms.uGlow) uniforms.uGlow.value = (0.55 + n.lighting.night * 0.3) * i;
+          if (uniforms.uAlpha) uniforms.uAlpha.value = Iu[t] * i;
         }),
         !(t < GAME_CONFIG.gasDelay) && ((this.tickT += e), this.tickT >= 1))
       ) {
@@ -2106,15 +2088,15 @@ var Effects = class {
             (t.takeDamage(e, null, !0), t.isPlayer && n.audio.play(`gas`));
       }
     }
-  },
-  Ru = 9,
+  }
+const Ru = 9,
   zu = 4.5,
-  Bu = 2.4,
-  Bot = class {
+  Bu = 2.4;
+class Bot {
     constructor(e, t) {
       ((this.game = e),
         (this.b = t),
-        (this.thinkT = Q(0, 0.35)),
+        (this.thinkT = randomRange(0, 0.35)),
         (this.state = `loot`),
         (this.target = null),
         (this.box = null),
@@ -2123,9 +2105,9 @@ var Effects = class {
         (this.pathI = 0),
         (this.repathT = 0),
         (this.strafeDir = Math.random() < 0.5 ? 1 : -1),
-        (this.strafeT = Q(0.6, 1.6)),
+        (this.strafeT = randomRange(0.6, 1.6)),
         (this.reactT = 0),
-        (this.shootT = Q(0.4, 1)),
+        (this.shootT = randomRange(0.4, 1)),
         (this.stuckT = 0),
         (this.lastX = t.x),
         (this.lastZ = t.z),
@@ -2134,7 +2116,7 @@ var Effects = class {
         (this.jz = 0),
         (this.wanderT = 0));
       let [n, r] = e.difficulty.skill;
-      ((this.skill = Q(n, r)), (this.thrower = t.def.attack.kind === `lob`));
+      ((this.skill = randomRange(n, r)), (this.thrower = t.def.attack.kind === `lob`));
     }
     canSee(e, t) {
       return t > Ru || (e.inBush && t > Bu && e.revealT <= 0)
@@ -2160,7 +2142,7 @@ var Effects = class {
         o = i ? 3.5 : 1 / 0;
       for (let n of t.brawlers) {
         if (n === e || !n.alive || n.airborne) continue;
-        let r = sl(e.x, e.z, n.x, n.z),
+        let r = distance(e.x, e.z, n.x, n.z),
           i = e.lastAttacker === n && t.elapsed - e.lastHitTime < 4;
         if (!(!n.isPlayer && !i && r > zu)) {
           if (n.isPlayer && !i && this.target !== n) {
@@ -2180,7 +2162,7 @@ var Effects = class {
         }
       }
       (a !== this.target &&
-        (this.reactT = Q(0.22, 0.5) * (2 - this.skill) * t.difficulty.react),
+        (this.reactT = randomRange(0.22, 0.5) * (2 - this.skill) * t.difficulty.react),
         (this.target = a));
       let s = r.active ? r.depthAt(e.x, e.z) : -99,
         c = null,
@@ -2201,13 +2183,13 @@ var Effects = class {
             s = e.x + t * 6 - e.x * 0.15,
             u = e.z + i * 6 - e.z * 0.15,
             d = Math.max(2, r.half - 3);
-          ((s = $c(s, -d, d)), (u = $c(u, -d, d)), (c = n.nearestOpen(s, u)));
+          ((s = clamp(s, -d, d)), (u = clamp(u, -d, d)), (c = n.nearestOpen(s, u)));
         } else l = `fight`;
       } else {
         let i = null,
           a = 9;
         for (let n of t.combat.cubes) {
-          let t = sl(e.x, e.z, n.x, n.z);
+          let t = distance(e.x, e.z, n.x, n.z);
           t < a && r.depthAt(n.x, n.z) < -0.5 && ((i = n), (a = t));
         }
         if (i) ((l = `cube`), (c = { x: i.x, z: i.z }));
@@ -2216,7 +2198,7 @@ var Effects = class {
             a = 26;
           for (let n of t.combat.boxes) {
             if (!n.alive || n.skipBy === e.id) continue;
-            let t = sl(e.x, e.z, n.x, n.z);
+            let t = distance(e.x, e.z, n.x, n.z);
             t < a && r.depthAt(n.x, n.z) < -2 && ((i = n), (a = t));
           }
           if (((this.box = i), i)) ((l = `box`), (c = { x: i.x, z: i.z }));
@@ -2226,10 +2208,10 @@ var Effects = class {
               (this.wanderT -= 0.3),
               !this.goal ||
                 this.wanderT <= 0 ||
-                sl(e.x, e.z, this.goal.x, this.goal.z) < 1.2)
+                distance(e.x, e.z, this.goal.x, this.goal.z) < 1.2)
             ) {
               let e = Math.max(2, Math.min(r.half - 4, 17));
-              ((this.wanderGoal = n.nearestOpen(Q(-e, e), Q(-e, e))),
+              ((this.wanderGoal = n.nearestOpen(randomRange(-e, e), randomRange(-e, e))),
                 (this.wanderT = 7));
             }
             c = this.wanderGoal;
@@ -2241,7 +2223,7 @@ var Effects = class {
         (this.repathT -= 0.3),
         c
           ? (!this.goal ||
-              sl(c.x, c.z, this.goal.x, this.goal.z) > 1.4 ||
+              distance(c.x, c.z, this.goal.x, this.goal.z) > 1.4 ||
               this.repathT <= 0 ||
               !this.path) &&
             this.planTo(c)
@@ -2274,25 +2256,25 @@ var Effects = class {
         [r, i] = this.path[this.pathI],
         a = n.center(r),
         o = n.center(i);
-      if (sl(e.x, e.z, a, o) < 0.36) {
+      if (distance(e.x, e.z, a, o) < 0.36) {
         if ((this.pathI++, this.pathI >= this.path.length)) return [0, 0];
         (([r, i] = this.path[this.pathI]),
           (a = n.center(r)),
           (o = n.center(i)));
       }
-      let s = sl(e.x, e.z, a, o) || 1;
+      let s = distance(e.x, e.z, a, o) || 1;
       return [(a - e.x) / s, (o - e.z) / s];
     }
     aimAt(e, t, n, r, i) {
       let { b: a } = this,
-        o = sl(a.x, a.z, e, t),
+        o = distance(a.x, a.z, e, t),
         s = i.kind === `lob` ? i.flight + i.fuse * 0.7 : o / (i.speed || 14),
         c = 0.8 * this.skill,
         l = e + n * s * c,
         u = t + r * s * c,
         d = (Math.random() - 0.5) * 2 * (0.05 + (1 - this.skill) * 0.3),
         f = Math.atan2(l - a.x, u - a.z) + d,
-        p = sl(a.x, a.z, l, u);
+        p = distance(a.x, a.z, l, u);
       return {
         dx: Math.sin(f),
         dz: Math.cos(f),
@@ -2317,7 +2299,7 @@ var Effects = class {
         o = 0,
         s = this.target && this.target.alive ? this.target : null;
       if (this.state === `fight` && s) {
-        let n = sl(t.x, t.z, s.x, s.z) || 0.001;
+        let n = distance(t.x, t.z, s.x, s.z) || 0.001;
         if (!(this.thrower || r.hasLineOfSight(t.x, t.z, s.x, s.z)))
           ((!this.path || this.pathI >= this.path.length) &&
             this.planTo({ x: s.x, z: s.z }),
@@ -2330,20 +2312,20 @@ var Effects = class {
           (n > c + 0.8 ? (l = 1) : n < c - 1.2 && (l = -1),
             (this.strafeT -= e),
             this.strafeT <= 0 &&
-              ((this.strafeT = Q(0.5, 1.5)), (this.strafeDir *= -1)));
+              ((this.strafeT = randomRange(0.5, 1.5)), (this.strafeDir *= -1)));
           let u = c < 2.5 ? 0.25 : 0.85;
           ((a = r * l + -i * this.strafeDir * u),
             (o = i * l + r * this.strafeDir * u));
         }
       } else
         this.state === `box` && this.box && this.box.alive
-          ? (sl(t.x, t.z, this.box.x, this.box.z) >
+          ? (distance(t.x, t.z, this.box.x, this.box.z) >
               Math.min(i.range * 0.7, 5) ||
               !this.seesBox(this.box)) &&
             ([a, o] = this.followPath())
           : ([a, o] = this.followPath());
       if (((this.stuckT += e), this.stuckT > 0.6)) {
-        let e = sl(t.x, t.z, this.lastX, this.lastZ);
+        let e = distance(t.x, t.z, this.lastX, this.lastZ);
         if ((a || o) && e < 0.14) {
           this.jitterT = 0.4;
           let e = Math.random() * 6.28;
@@ -2361,7 +2343,7 @@ var Effects = class {
         (t.moveZ = c > 0.01 ? o / c : 0),
         s && this.reactT <= 0 && !s.airborne)
       ) {
-        let e = sl(t.x, t.z, s.x, s.z),
+        let e = distance(t.x, t.z, s.x, s.z),
           a = this.thrower ? e < i.range : r.hasLineOfSight(t.x, t.z, s.x, s.z);
         if (a && t.superReady && this.shootT <= 0) {
           let n = t.def.super,
@@ -2374,14 +2356,14 @@ var Effects = class {
             i = n.kind === `leap` ? 2.5 : 0;
           if (e < r && e > i && Math.random() < 0.6) {
             let e = this.aimAt(s.x, s.z, s.vel.x, s.vel.y, n);
-            t.useSuper(e.dx, e.dz, e.x, e.z) && (this.shootT = Q(0.4, 0.8));
+            t.useSuper(e.dx, e.dz, e.x, e.z) && (this.shootT = randomRange(0.4, 0.8));
           }
         }
         if (a && e < i.range * 0.95 && this.shootT <= 0 && t.ammo >= 1) {
           let e = this.aimAt(s.x, s.z, s.vel.x, s.vel.y, i);
           t.attack(e.dx, e.dz, e.x, e.z) &&
             (this.shootT =
-              (Q(0.45, 1) + (t.ammo < 1 ? 0.4 : 0)) *
+              (randomRange(0.45, 1) + (t.ammo < 1 ? 0.4 : 0)) *
               (s.isPlayer ? n.difficulty.cadence : 1));
         }
       } else if (
@@ -2391,17 +2373,17 @@ var Effects = class {
         this.shootT <= 0 &&
         t.ammo >= 1
       ) {
-        let e = sl(t.x, t.z, this.box.x, this.box.z);
+        let e = distance(t.x, t.z, this.box.x, this.box.z);
         if (e < i.range * 0.85 && (this.thrower || this.seesBox(this.box))) {
           let n = (this.box.x - t.x) / (e || 1),
             r = (this.box.z - t.z) / (e || 1);
           t.attack(n, r, this.box.x, this.box.z) &&
-            (this.shootT = Q(0.35, 0.7));
+            (this.shootT = randomRange(0.35, 0.7));
         }
       }
     }
-  },
-  Hu = {
+  }
+const Hu = {
     w: `KeyW`,
     a: `KeyA`,
     s: `KeyS`,
@@ -2418,11 +2400,12 @@ var Effects = class {
     arrowup: `ArrowUp`,
     arrowdown: `ArrowDown`,
   },
-  Uu = (e) => e.code || Hu[(e.key || ``).toLowerCase()] || ``,
-  Wu = () => ({ id: null, ox: 0, oy: 0, x: 0, y: 0, mag: 0, moved: !1 }),
-  Input = class {
+  getKeyCode = (e) => e.code || Hu[(e.key || ``).toLowerCase()] || ``,
+  createStickState = () => ({ id: null, ox: 0, oy: 0, x: 0, y: 0, mag: 0, moved: !1 });
+class Input {
     constructor(e, t) {
       ((this.keys = new Set()),
+        (this.listeners = new AbortController()),
         (this.ndcX = 0),
         (this.ndcY = 0),
         (this.fire = !1),
@@ -2432,7 +2415,7 @@ var Effects = class {
         (this.touchMode = !1),
         (this.onTouchMode = null),
         (this.lastTouch = -1e9),
-        (this.sticks = { move: Wu(), aim: Wu(), super: Wu() }),
+        (this.sticks = { move: createStickState(), aim: createStickState(), super: createStickState() }),
         (this.shots = []));
       let n = new Set([`Space`, `KeyE`]);
       (window.addEventListener(`keydown`, (e) => {
@@ -2442,22 +2425,22 @@ var Effects = class {
             (e.target.tagName === `INPUT` || e.target.tagName === `SELECT`))
         )
           return;
-        let t = Uu(e);
+        let t = getKeyCode(e);
         (this.keys.add(t),
           n.has(t) && ((this.superHeld = !0), e.preventDefault()),
           t.startsWith(`Arrow`) && e.preventDefault());
-      }),
+      }, { signal: this.listeners.signal }),
         window.addEventListener(`keyup`, (e) => {
-          let t = Uu(e);
+          let t = getKeyCode(e);
           (this.keys.delete(t),
             n.has(t) &&
               this.superHeld &&
               ((this.superHeld = !1), (this.superReleased = !0)));
-        }),
+        }, { signal: this.listeners.signal }),
         window.addEventListener(`blur`, () => {
           (this.keys.clear(), (this.fire = !1), (this.superHeld = !1));
           for (let e of Object.values(this.sticks)) this.resetStick(e);
-        }));
+        }, { signal: this.listeners.signal }));
       let r = () => performance.now() - this.lastTouch < 900,
         i = (e) => {
           ((this.ndcX = (e.clientX / window.innerWidth) * 2 - 1),
@@ -2465,21 +2448,21 @@ var Effects = class {
         };
       (window.addEventListener(`mousemove`, (e) => {
         r() || i(e);
-      }),
+      }, { signal: this.listeners.signal }),
         e.addEventListener(`mousedown`, (e) => {
           r() ||
             (this.touchMode && this.setTouchMode(!1),
             i(e),
             e.button === 0 && (this.fire = !0),
             e.button === 2 && (this.superHeld = !0));
-        }),
+        }, { signal: this.listeners.signal }),
         window.addEventListener(`mouseup`, (e) => {
           (e.button === 0 && (this.fire = !1),
             e.button === 2 &&
               this.superHeld &&
               ((this.superHeld = !1), (this.superReleased = !0)));
-        }),
-        e.addEventListener(`contextmenu`, (e) => e.preventDefault()));
+        }, { signal: this.listeners.signal }),
+        e.addEventListener(`contextmenu`, (e) => e.preventDefault(), { signal: this.listeners.signal }));
       let a = (e, t) => {
           if (e.pointerType !== `touch`) return;
           ((this.lastTouch = performance.now()),
@@ -2499,9 +2482,9 @@ var Effects = class {
             e.preventDefault());
         },
         o = (e) => Object.values(this.sticks).find((t) => t.id === e.pointerId);
-      (e.addEventListener(`pointerdown`, (e) => a(e, `field`)),
+      (e.addEventListener(`pointerdown`, (e) => a(e, `field`), { signal: this.listeners.signal }),
         t &&
-          (t.addEventListener(`pointerdown`, (e) => a(e, `super`)),
+          (t.addEventListener(`pointerdown`, (e) => a(e, `super`), { signal: this.listeners.signal }),
           t.addEventListener(`click`, () => {
             r() ||
               this.shots.push({
@@ -2512,7 +2495,7 @@ var Effects = class {
                 tap: !0,
                 cancelled: !1,
               });
-          })),
+          }, { signal: this.listeners.signal })),
         window.addEventListener(`pointermove`, (e) => {
           if (e.pointerType !== `touch`) return;
           this.lastTouch = performance.now();
@@ -2526,7 +2509,7 @@ var Effects = class {
             (t.y = r),
             (t.mag = Math.min(1, i)),
             t.mag > 0.22 && (t.moved = !0));
-        }));
+        }, { signal: this.listeners.signal }));
       let s = (e) => {
         if (e.pointerType !== `touch`) return;
         this.lastTouch = performance.now();
@@ -2544,8 +2527,12 @@ var Effects = class {
             }),
           this.resetStick(t));
       };
-      (window.addEventListener(`pointerup`, s),
-        window.addEventListener(`pointercancel`, s));
+      (window.addEventListener(`pointerup`, s, { signal: this.listeners.signal }),
+        window.addEventListener(`pointercancel`, s, { signal: this.listeners.signal }));
+    }
+    dispose() {
+      this.listeners.abort();
+      this.onTouchMode = null;
     }
     resetStick(e) {
       ((e.id = null), (e.x = e.y = e.mag = 0), (e.moved = !1));
@@ -2582,17 +2569,17 @@ var Effects = class {
       let e = this.shots;
       return ((this.shots = []), e);
     }
-  },
-  projectedPosition = new H(),
+  }
+const projectedPosition = new Vector3(),
   $ = (e) => document.getElementById(e),
-  qu = (e) => {
+  formatGameTime = (e) => {
     let t = Math.floor(e) % 24,
       n = Math.floor((e - Math.floor(e)) * 60);
     return `${String(t).padStart(2, `0`)}:${String(n).padStart(2, `0`)}`;
   },
-  Ju = (e) =>
-    e >= 19.4 || e < 5.6 ? `🌙` : e >= 17.2 || e < 7.2 ? `🌇` : `☀️`,
-  HUD = class {
+  formatClock = (e) =>
+    e >= 19.4 || e < 5.6 ? `🌙` : e >= 17.2 || e < 7.2 ? `🌇` : `☀️`;
+class HUD {
     constructor(e) {
       ((this.game = e),
         (this.root = $(`hud`)),
@@ -2606,7 +2593,7 @@ var Effects = class {
         ((e.className = `floater`),
           (e.hidden = !0),
           this.floaterLayer.appendChild(e),
-          this.floaters.push({ el: e, life: 0, x: 0, y: 0, z: 0, drift: 0 }));
+          this.floaters.push({ lerp: e, life: 0, x: 0, y: 0, z: 0, drift: 0 }));
       }
       ((this.floaterCursor = 0),
         (this.bannerT = 0),
@@ -2785,7 +2772,7 @@ var Effects = class {
       this.overheads.clear();
       for (let e of this.boxBars.values()) e.root.remove();
       this.boxBars.clear();
-      for (let e of this.floaters) ((e.life = 0), (e.el.hidden = !0));
+      for (let e of this.floaters) ((e.life = 0), (e.lerp.hidden = !0));
       (($(`feed`).innerHTML = ``), (this.lastLeft = -1), this.hideResult());
     }
     addBrawler(e) {
@@ -2817,9 +2804,9 @@ var Effects = class {
         (a.y = t),
         (a.z = n),
         (a.drift = (Math.random() - 0.5) * 30),
-        (a.el.textContent = r),
-        (a.el.className = `floater ` + i),
-        (a.el.hidden = !1));
+        (a.lerp.textContent = r),
+        (a.lerp.className = `floater ` + i),
+        (a.lerp.hidden = !1));
     }
     feed(e) {
       let t = $(`feed`),
@@ -2836,7 +2823,7 @@ var Effects = class {
         (this.bannerT = t));
     }
     flashHurt(e) {
-      this.hurt = $c(this.hurt + e / 1400, 0.35, 1);
+      this.hurt = clamp(this.hurt + e / 1400, 0.35, 1);
     }
     project(e, t, n, r) {
       return (
@@ -2867,7 +2854,7 @@ var Effects = class {
           ((o !== t.lastHp || e.maxHp !== t.lastMax) &&
             ((t.lastHp = o),
             (t.lastMax = e.maxHp),
-            (t.fill.style.transform = `scaleX(${$c(o / e.maxHp, 0, 1).toFixed(3)})`),
+            (t.fill.style.transform = `scaleX(${clamp(o / e.maxHp, 0, 1).toFixed(3)})`),
             (t.hp.textContent = o)),
           e.cubes !== t.lastCubes &&
             ((t.lastCubes = e.cubes),
@@ -2875,7 +2862,7 @@ var Effects = class {
           e.isPlayer)
         )
           for (let n = 0; n < 3; n++) {
-            let r = $c(
+            let r = clamp(
                 e.ammo - n + (Math.floor(e.ammo) === n ? e.reloadT : 0),
                 0,
                 1,
@@ -2912,13 +2899,13 @@ var Effects = class {
         let i = Math.max(0, Math.ceil(e.hp));
         i !== t.last &&
           ((t.last = i),
-          (t.fill.style.transform = `scaleX(${$c(i / e.maxHp, 0, 1).toFixed(3)})`),
+          (t.fill.style.transform = `scaleX(${clamp(i / e.maxHp, 0, 1).toFixed(3)})`),
           (t.hp.textContent = i));
       }
       for (let t of this.floaters) {
         if (t.life <= 0) continue;
         if (((t.life -= e), t.life <= 0)) {
-          t.el.hidden = !0;
+          t.lerp.hidden = !0;
           continue;
         }
         let r = 1 - t.life / 0.85,
@@ -2927,18 +2914,18 @@ var Effects = class {
             r < 0.15
               ? 0.6 + (r / 0.15) * 0.6
               : 1.2 - Math.min(1, (r - 0.15) * 1.5) * 0.2;
-        ((t.el.style.transform = `translate3d(${(i.x + t.drift * r).toFixed(1)}px, ${i.y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${a.toFixed(2)})`),
-          (t.el.style.opacity = r > 0.7 ? ((1 - r) / 0.3).toFixed(2) : `1`));
+        ((t.lerp.style.transform = `translate3d(${(i.x + t.drift * r).toFixed(1)}px, ${i.y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${a.toFixed(2)})`),
+          (t.lerp.style.opacity = r > 0.7 ? ((1 - r) / 0.3).toFixed(2) : `1`));
       }
       let r = t.brawlers.reduce((e, t) => e + +!!t.alive, 0);
       r !== this.lastLeft &&
         ((this.lastLeft = r),
         ($(`left-count`).innerHTML = `BRAWLERS LEFT <b>${r}</b>`));
-      let i = `${Ju(t.lighting.time)} ${qu(t.lighting.time)}`;
+      let i = `${formatClock(t.lighting.time)} ${formatGameTime(t.lighting.time)}`;
       i !== this.lastClock &&
         ((this.lastClock = i),
         ($(`clock`).textContent = i),
-        ($(`time-label`).textContent = qu(t.lighting.time)),
+        ($(`time-label`).textContent = formatGameTime(t.lighting.time)),
         document.activeElement !== $(`time-slider`) &&
           ($(`time-slider`).value = t.lighting.time));
       let a = t.player,
@@ -2975,14 +2962,14 @@ var Effects = class {
             (e) => e.castShadow && e.shadow.autoUpdate,
           ).length;
         $(`stats`).textContent =
-          `${this.fps} fps   ${e.render.calls} draws   ${(e.render.triangles / 1e3).toFixed(0)}k tris\nsun shadow ${n.mapSize}px over ${(n.shadowRadius * 2).toFixed(0)}m  (${t.pipeline.usingPCSS ? `PCSS` : `PCF`})\nlamps lit ${r}  casting ${i}   pool lights ${n.pool.filter((e) => e.intensity > 0).length}/${n.pool.length}\n` +
+          `${this.fps} fps   ${e.render.calls} draws   ${(e.render.triangles / 1e3).toFixed(0)}SRGBColorSpace tris\nsun shadow ${n.mapSize}px over ${(n.shadowRadius * 2).toFixed(0)}m  (${t.pipeline.usingPCSS ? `PCSS` : `PCF`})\nlamps lit ${r}  casting ${i}   pool lights ${n.pool.filter((e) => e.intensity > 0).length}/${n.pool.length}\n` +
           (t.userPickedQuality
             ? `quality: your choice`
             : `quality: auto  (night frame ${t.perf.benchMs ? t.perf.benchMs.toFixed(1) : `?`} ms at startup)`);
       }
     }
-  },
-  GameAudio = class {
+  }
+class GameAudio {
     constructor() {
       ((this.ctx = null),
         (this.master = null),
@@ -3150,18 +3137,18 @@ var Effects = class {
             this.tone(`triangle`, 900, 600, 0.05, 0.2);
         }
     }
-  },
-  FOV = 32,
+  }
+const FOV = 32,
   CAMERA_PITCH = (56 * Math.PI) / 180,
   $u = 23,
   TIME_PRESETS = [null, 12.5, 17.6, 18.6, 19.4, 21.5],
   SETTINGS_KEY = `sundown-showdown-settings`,
-  nd = new Hi(),
-  rd = new V(),
-  id = new _n(new H(0, 1, 0), -0.5),
-  ad = new H(),
-  od = new J(16761402),
-  sd = new J(16767392);
+  nd = new Raycaster(),
+  rd = new Vector2(),
+  id = new Plane(new Vector3(0, 1, 0), -0.5),
+  ad = new Vector3(),
+  od = new Color(16761402),
+  sd = new Color(16767392);
 
 export {
   $,
@@ -3184,37 +3171,37 @@ export {
   Hu,
   Input,
   Iu,
-  Ju,
-  Mu,
+  formatClock,
+  createSmokeTexture,
   Ou,
   Pu,
   Ru,
   SETTINGS_KEY,
   TIME_PRESETS,
   Tu,
-  Uu,
-  Wu,
+  getKeyCode,
+  createStickState,
   _u,
   ad,
-  brawlerId,
+  nextBrawlerId,
   bu,
   gu,
   hu,
   id,
-  ju,
+  ParticlePool,
   ku,
   mu,
   nd,
   od,
   projectedPosition,
   pu,
-  qu,
+  formatGameTime,
   rd,
   sd,
-  uu,
+  createBrawlerModel,
   vu,
   wu,
-  xu,
+  createLightningTexture,
   yu,
   zu,
 };

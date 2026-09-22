@@ -1,41 +1,41 @@
 // @ts-nocheck
 import {
-  $c,
+  clamp,
   AO_TILE_SIZE,
   CARDINAL_DIRECTIONS,
-  J,
+  Color,
   LAMP_CONFIG,
-  Ln,
-  Ne,
-  Nr,
-  Qc,
+  Mesh,
+  Vector4,
+  MeshStandardMaterial,
+  createSeededRandom,
   RoundedBoxGeometry,
-  Sr,
+  TorusGeometry,
   TILE_SIZE,
   TerrainStyle,
   TileType,
-  V,
-  Yn,
+  Vector2,
+  InstancedMesh,
   _,
   a,
   addHeightColors,
-  al,
+  createCanvas,
   b,
-  br,
+  RingGeometry,
   c,
-  cr,
+  CanvasTexture,
   createBarrelTexture,
   createCrateTexture,
   createNormalTexture,
   d,
   e,
-  en,
+  Float32BufferAttribute,
   f,
-  fr,
+  BoxGeometry,
   g,
-  gr,
+  ConeGeometry,
   h,
-  hr,
+  CylinderGeometry,
   i,
   instanceColor,
   instanceEuler,
@@ -44,38 +44,38 @@ import {
   instanceQuaternion,
   instanceScale,
   isInBounds,
-  k,
+  SRGBColorSpace,
   l,
   m,
   mergeGeometries,
-  mr,
+  CircleGeometry,
   n,
   o,
   p,
-  pn,
-  pr,
+  BufferGeometry,
+  CapsuleGeometry,
   r,
   s,
   t,
   tileIndex,
   u,
-  ut,
+  Group,
   v,
-  vr,
+  DodecahedronGeometry,
   x,
-  xr,
+  SphereGeometry,
   y,
-  yr,
+  PlaneGeometry,
   z,
   zeroInstanceMatrix,
 } from "./shared.js";
 
-var World = class {
-    constructor(e, t, n = 8) {
-      ((this.scene = e),
-        (this.anisotropy = n),
-        (this.group = new ut()),
-        e.add(this.group),
+class World {
+    constructor(scene, seed, anisotropy = 8) {
+      ((this.scene = scene),
+        (this.anisotropy = anisotropy),
+        (this.group = new Group()),
+        scene.add(this.group),
         (this.tiles = new Uint8Array(1936)),
         (this.styles = new Uint8Array(1936)),
         (this.blockers = new Uint8Array(1936)),
@@ -97,11 +97,11 @@ var World = class {
         (this.grassUniforms = {
           uTime: { value: 0 },
           uPushers: {
-            value: Array.from({ length: 8 }, () => new Ne(0, 0, 1, 0)),
+            value: Array.from({ length: 8 }, () => new Vector4(0, 0, 1, 0)),
           },
-          uReveal: { value: new Ne(0, 0, 0, 0) },
+          uReveal: { value: new Vector4(0, 0, 0, 0) },
         }),
-        this.generate(t),
+        this.generate(seed),
         this.buildGround(),
         this.buildWalls(),
         this.buildBushes(),
@@ -109,51 +109,51 @@ var World = class {
         this.buildLamps(),
         this.buildOutskirts());
     }
-    toTile(e) {
-      return Math.floor(e + 22);
+    toTile(worldCoordinate) {
+      return Math.floor(worldCoordinate + 22);
     }
-    center(e) {
-      return e + 0.5 - 22;
+    center(tileCoordinate) {
+      return tileCoordinate + 0.5 - 22;
     }
-    tileAt(e, t) {
-      let n = this.toTile(e),
-        r = this.toTile(t);
-      return isInBounds(n, r) ? this.tiles[tileIndex(n, r)] : TileType.WALL;
+    tileAt(worldX, worldZ) {
+      const tileX = this.toTile(worldX);
+      const tileZ = this.toTile(worldZ);
+      return isInBounds(tileX, tileZ) ? this.tiles[tileIndex(tileX, tileZ)] : TileType.WALL;
     }
-    isBushAt(e, t) {
-      return this.tileAt(e, t) === TileType.BUSH;
+    isBushAt(worldX, worldZ) {
+      return this.tileAt(worldX, worldZ) === TileType.BUSH;
     }
-    isSolidTile(e, t) {
-      if (!isInBounds(e, t)) return !0;
-      let n = tileIndex(e, t),
-        r = this.tiles[n];
+    isSolidTile(tileX, tileZ) {
+      if (!isInBounds(tileX, tileZ)) return true;
+      const index = tileIndex(tileX, tileZ);
+      const tileType = this.tiles[index];
       return (
-        r === TileType.WALL || r === TileType.WATER || this.blockers[n] === 1
+        tileType === TileType.WALL || tileType === TileType.WATER || this.blockers[index] === 1
       );
     }
-    blocksShots(e, t) {
-      if (!isInBounds(e, t)) return !0;
-      let n = tileIndex(e, t);
-      return this.tiles[n] === TileType.WALL || this.blockers[n] === 1;
+    blocksShots(tileX, tileZ) {
+      if (!isInBounds(tileX, tileZ)) return true;
+      const index = tileIndex(tileX, tileZ);
+      return this.tiles[index] === TileType.WALL || this.blockers[index] === 1;
     }
-    isWalkable(e, t) {
-      return !this.isSolidTile(e, t);
+    isWalkable(tileX, tileZ) {
+      return !this.isSolidTile(tileX, tileZ);
     }
-    isBreakable(e, t) {
-      if (!isInBounds(e, t)) return !1;
-      let n = tileIndex(e, t);
+    isBreakable(tileX, tileZ) {
+      if (!isInBounds(tileX, tileZ)) return false;
+      const index = tileIndex(tileX, tileZ);
       return (
-        this.tiles[n] === TileType.BUSH ||
-        (this.tiles[n] === TileType.WALL &&
-          this.styles[n] !== TerrainStyle.ROCK &&
-          this.styles[n] !== TerrainStyle.LAMP)
+        this.tiles[index] === TileType.BUSH ||
+        (this.tiles[index] === TileType.WALL &&
+          this.styles[index] !== TerrainStyle.ROCK &&
+          this.styles[index] !== TerrainStyle.LAMP)
       );
     }
-    generate(e) {
-      for (let t = 0; t < 60; t++) {
-        let n = (e + t * 7919) | 0;
-        if (this.tryGenerate(Qc(n))) {
-          this.seed = n;
+    generate(seed) {
+      for (let attempt = 0; attempt < 60; attempt++) {
+        const candidateSeed = (seed + attempt * 7919) | 0;
+        if (this.tryGenerate(createSeededRandom(candidateSeed))) {
+          this.seed = candidateSeed;
           return;
         }
       }
@@ -311,9 +311,9 @@ var World = class {
     }
     paintBase() {
       let e = 44 * TILE_SIZE,
-        t = al(e, e),
+        t = createCanvas(e, e),
         n = t.getContext(`2d`),
-        r = Qc(this.seed ^ 20973);
+        r = createSeededRandom(this.seed ^ 20973);
       for (let e = 0; e < 44; e++)
         for (let t = 0; t < 44; t++) {
           let i = t < 2 || e < 2 || t >= 42 || e >= 42,
@@ -335,7 +335,7 @@ var World = class {
           n.arc(t, i, a, 0, 7),
           n.fill());
       }
-      let i = al(e, e),
+      let i = createCanvas(e, e),
         a = i.getContext(`2d`);
       ((a.fillStyle = `#fff`), a.fillRect(0, 0, e, e));
       for (let e = 0; e < 44; e++)
@@ -357,7 +357,7 @@ var World = class {
     }
     paintAO() {
       let e = 44 * AO_TILE_SIZE,
-        t = al(e, e),
+        t = createCanvas(e, e),
         n = t.getContext(`2d`);
       ((n.fillStyle = `#fff`), n.fillRect(0, 0, e, e));
       for (let e = 0; e < 44; e++)
@@ -376,7 +376,7 @@ var World = class {
             AO_TILE_SIZE - a * 2,
           );
         }
-      this.aoCanvas ||= al(e, e);
+      this.aoCanvas ||= createCanvas(e, e);
       let r = this.aoCanvas.getContext(`2d`);
       return (
         (r.fillStyle = `#fff`),
@@ -389,7 +389,7 @@ var World = class {
     }
     composeGround() {
       let e = 44 * TILE_SIZE;
-      this.groundCanvas ||= al(e, e);
+      this.groundCanvas ||= createCanvas(e, e);
       let t = this.groundCanvas.getContext(`2d`);
       ((t.globalCompositeOperation = `source-over`),
         (t.globalAlpha = 1),
@@ -404,9 +404,9 @@ var World = class {
       ((this.baseCanvas = this.paintBase()),
         this.paintAO(),
         this.composeGround());
-      let e = new cr(this.groundCanvas);
-      ((e.colorSpace = k), (e.anisotropy = this.anisotropy));
-      let t = new cr(this.aoCanvas);
+      let e = new CanvasTexture(this.groundCanvas);
+      ((e.colorSpace = SRGBColorSpace), (e.anisotropy = this.anisotropy));
+      let t = new CanvasTexture(this.aoCanvas);
       ((t.anisotropy = 4), (this.groundMap = e), (this.groundAO = t));
       let n = [],
         r = [],
@@ -505,19 +505,19 @@ var World = class {
                 ],
               ));
         }
-      let u = new pn();
-      (u.setAttribute(`position`, new en(n, 3)),
-        u.setAttribute(`normal`, new en(i, 3)),
-        u.setAttribute(`uv`, new en(r, 2)),
+      let u = new BufferGeometry();
+      (u.setAttribute(`position`, new Float32BufferAttribute(n, 3)),
+        u.setAttribute(`normal`, new Float32BufferAttribute(i, 3)),
+        u.setAttribute(`uv`, new Float32BufferAttribute(r, 2)),
         u.setIndex(a));
-      let d = new Nr({
+      let d = new MeshStandardMaterial({
           map: e,
           aoMap: t,
           aoMapIntensity: 1,
           roughness: 0.96,
           metalness: 0,
         }),
-        f = new Ln(u, d);
+        f = new Mesh(u, d);
       ((f.receiveShadow = !0),
         (f.name = `ground`),
         this.group.add(f),
@@ -530,7 +530,7 @@ var World = class {
         (this.groundAO.needsUpdate = !0));
     }
     addInstanced(e, t, n, r, i = !0) {
-      let a = new Yn(t, n, Math.max(1, r));
+      let a = new InstancedMesh(t, n, Math.max(1, r));
       return (
         (a.count = r),
         (a.castShadow = i),
@@ -543,7 +543,7 @@ var World = class {
       );
     }
     buildWalls() {
-      let e = Qc(this.seed ^ 2577),
+      let e = createSeededRandom(this.seed ^ 2577),
         t = {
           [TerrainStyle.STONE]: [],
           [TerrainStyle.CRATE]: [],
@@ -576,7 +576,7 @@ var World = class {
             0.62,
             0.8,
           ),
-          i = new Nr({
+          i = new MeshStandardMaterial({
             color: 16777215,
             roughness: 0.88,
             metalness: 0,
@@ -607,8 +607,8 @@ var World = class {
         });
       }
       {
-        let r = addHeightColors(new fr(0.94, 0.94, 0.94), 0.7),
-          i = new Nr({
+        let r = addHeightColors(new BoxGeometry(0.94, 0.94, 0.94), 0.7),
+          i = new MeshStandardMaterial({
             map: createCrateTexture(),
             roughness: 0.82,
             vertexColors: !0,
@@ -634,8 +634,8 @@ var World = class {
         });
       }
       {
-        let r = addHeightColors(new hr(0.41, 0.37, 1.04, 16), 0.68),
-          i = new Nr({
+        let r = addHeightColors(new CylinderGeometry(0.41, 0.37, 1.04, 16), 0.68),
+          i = new MeshStandardMaterial({
             map: createBarrelTexture(),
             roughness: 0.7,
             vertexColors: !0,
@@ -660,8 +660,8 @@ var World = class {
         });
       }
       {
-        let e = [new pr(0.2, 0.85, 5, 12).translate(0, 0.62, 0)],
-          n = new pr(0.105, 0.26, 4, 10);
+        let e = [new CapsuleGeometry(0.2, 0.85, 5, 12).translate(0, 0.62, 0)],
+          n = new CapsuleGeometry(0.105, 0.26, 4, 10);
         (e.push(
           n
             .clone()
@@ -677,7 +677,7 @@ var World = class {
             n.clone().translate(-0.43, 0.68, 0),
           ),
           (this.cactusGeo = addHeightColors(mergeGeometries(e), 0.6)),
-          (this.cactusMat = new Nr({
+          (this.cactusMat = new MeshStandardMaterial({
             color: 16777215,
             roughness: 0.7,
             vertexColors: !0,
@@ -699,8 +699,8 @@ var World = class {
         (Math.abs(t) < 22.8 && Math.abs(i) < 22.8) ||
           (e() < 0.62 ? n : r).push([t, i]);
       }
-      let i = new vr(0.78, 0),
-        a = new Nr({ color: 16777215, roughness: 0.93, metalness: 0 }),
+      let i = new DodecahedronGeometry(0.78, 0),
+        a = new MeshStandardMaterial({ color: 16777215, roughness: 0.93, metalness: 0 }),
         o = this.addInstanced(`rock`, i, a, this.rockList.length + n.length);
       (this.rockList.forEach(([n, r], i) => {
         let a =
@@ -798,8 +798,8 @@ var World = class {
               instanceColor,
             ));
         }));
-      let c = new Nr({
-        color: new J().setHSL(33 / 360, 0.38, 0.5),
+      let c = new MeshStandardMaterial({
+        color: new Color().setHSL(33 / 360, 0.38, 0.5),
         roughness: 1,
       });
       for (let [e, t, n, r] of [
@@ -808,8 +808,8 @@ var World = class {
         [-67, 0, 90, 44],
         [67, 0, 90, 44],
       ]) {
-        let i = new yr(n, r).rotateX(-Math.PI / 2),
-          a = new Ln(i, c);
+        let i = new PlaneGeometry(n, r).rotateX(-Math.PI / 2),
+          a = new Mesh(i, c);
         (a.position.set(e, 0, t),
           (a.receiveShadow = !0),
           this.group.add(a),
@@ -818,12 +818,12 @@ var World = class {
       this.disposables.push(c);
     }
     buildBushes() {
-      let e = Qc(this.seed ^ 2821),
+      let e = createSeededRandom(this.seed ^ 2821),
         t = [];
       for (let e = 0; e < 44; e++)
         for (let n = 0; n < 44; n++)
           this.tiles[tileIndex(n, e)] === TileType.BUSH && t.push([n, e]);
-      let n = new gr(0.2, 1, 5, 3);
+      let n = new ConeGeometry(0.2, 1, 5, 3);
       n.translate(0, 0.5, 0);
       let r = n.attributes.position;
       for (let e = 0; e < r.count; e++) {
@@ -831,7 +831,7 @@ var World = class {
         (r.setX(e, r.getX(e) + t * t * 0.2), r.setZ(e, r.getZ(e) * 0.5));
       }
       n.computeVertexNormals();
-      let i = new Nr({ color: 16777215, roughness: 0.78, metalness: 0 }),
+      let i = new MeshStandardMaterial({ color: 16777215, roughness: 0.78, metalness: 0 }),
         a = this.grassUniforms;
       i.onBeforeCompile = (e) => {
         (Object.assign(e.uniforms, a),
@@ -930,18 +930,18 @@ varying vec3 vBladeWorld;`,
         this.tiles[t] === TileType.WATER && (e = !0);
       if (!e) return;
       let t = createNormalTexture(),
-        n = new Nr({
+        n = new MeshStandardMaterial({
           color: 2072516,
           roughness: 0.07,
           metalness: 0.05,
           normalMap: t,
-          normalScale: new V(0.55, 0.55),
+          normalScale: new Vector2(0.55, 0.55),
           envMapIntensity: 1.6,
           emissive: 407631,
           emissiveIntensity: 0.35,
         }),
-        r = new yr(44, 44).rotateX(-Math.PI / 2),
-        i = new Ln(r, n);
+        r = new PlaneGeometry(44, 44).rotateX(-Math.PI / 2),
+        i = new Mesh(r, n);
       ((i.position.y = -0.17),
         (i.receiveShadow = !0),
         (i.name = `water`),
@@ -953,32 +953,32 @@ varying vec3 vBladeWorld;`,
     buildLamps() {
       let e = this.lampTiles.length,
         t = mergeGeometries([
-          new hr(0.3, 0.4, 0.5, 10).translate(0, 0.25, 0),
-          new hr(0.05, 0.075, LAMP_CONFIG.height, 8).translate(
+          new CylinderGeometry(0.3, 0.4, 0.5, 10).translate(0, 0.25, 0),
+          new CylinderGeometry(0.05, 0.075, LAMP_CONFIG.height, 8).translate(
             0,
             LAMP_CONFIG.height / 2,
             0,
           ),
-          new fr(LAMP_CONFIG.arm + 0.12, 0.07, 0.07).translate(
+          new BoxGeometry(LAMP_CONFIG.arm + 0.12, 0.07, 0.07).translate(
             LAMP_CONFIG.arm / 2,
             LAMP_CONFIG.height,
             0,
           ),
-          new hr(0.07, 0.15, 0.07, 8).translate(
+          new CylinderGeometry(0.07, 0.15, 0.07, 8).translate(
             LAMP_CONFIG.arm,
             LAMP_CONFIG.height - 0.02,
             0,
           ),
-          new hr(0.1, 0.06, 0.05, 8).translate(
+          new CylinderGeometry(0.1, 0.06, 0.05, 8).translate(
             LAMP_CONFIG.arm,
             LAMP_CONFIG.height - 0.42,
             0,
           ),
         ]),
-        n = new Nr({ color: 4869984, roughness: 0.55, metalness: 0.25 }),
+        n = new MeshStandardMaterial({ color: 4869984, roughness: 0.55, metalness: 0.25 }),
         r = this.addInstanced(`lampPost`, t, n, e),
-        i = new hr(0.135, 0.105, 0.34, 10).translate(0, -0.05, 0);
-      this.lampGlass = new Nr({
+        i = new CylinderGeometry(0.135, 0.105, 0.34, 10).translate(0, -0.05, 0);
+      this.lampGlass = new MeshStandardMaterial({
         color: 3811860,
         emissive: 16757850,
         emissiveIntensity: 0.15,
@@ -1034,80 +1034,78 @@ varying vec3 vBladeWorld;`,
       }
       return ((this.tiles[n] = TileType.EMPTY), (this.aoDirty = !0), r);
     }
-    setBlocker(e, t, n) {
-      ((this.blockers[tileIndex(e, t)] = +!!n), (this.aoDirty = !0));
+    setBlocker(tileX, tileZ, isBlocked) {
+      this.blockers[tileIndex(tileX, tileZ)] = Number(isBlocked);
+      this.aoDirty = true;
     }
-    resolveCircle(e, t) {
-      for (let n = 0; n < 2; n++) {
-        let n = this.toTile(e.x),
-          r = this.toTile(e.z);
-        for (let i = -1; i <= 1; i++)
-          for (let a = -1; a <= 1; a++) {
-            let o = n + a,
-              s = r + i;
-            if (!this.isSolidTile(o, s)) continue;
-            let c = o - 22,
-              l = s - 22,
-              u = $c(e.x, c, c + 1),
-              d = $c(e.z, l, l + 1),
-              f = e.x - u,
-              p = e.z - d,
-              m = f * f + p * p;
-            if (!(m >= t * t)) {
-              if (m > 1e-8) {
-                let n = Math.sqrt(m);
-                ((e.x = u + (f / n) * t), (e.z = d + (p / n) * t));
+    resolveCircle(position, radius) {
+      for (let pass = 0; pass < 2; pass++) {
+        const centerTileX = this.toTile(position.x);
+        const centerTileZ = this.toTile(position.z);
+        for (let offsetZ = -1; offsetZ <= 1; offsetZ++) {
+          for (let offsetX = -1; offsetX <= 1; offsetX++) {
+            const tileX = centerTileX + offsetX;
+            const tileZ = centerTileZ + offsetZ;
+            if (!this.isSolidTile(tileX, tileZ)) continue;
+            const tileWorldX = tileX - 22;
+            const tileWorldZ = tileZ - 22;
+            const closestX = clamp(position.x, tileWorldX, tileWorldX + 1);
+            const closestZ = clamp(position.z, tileWorldZ, tileWorldZ + 1);
+            const deltaX = position.x - closestX;
+            const deltaZ = position.z - closestZ;
+            const distanceSquaredToTile = deltaX * deltaX + deltaZ * deltaZ;
+            if (distanceSquaredToTile >= radius * radius) continue;
+            if (distanceSquaredToTile > 1e-8) {
+              const distanceToTile = Math.sqrt(distanceSquaredToTile);
+              position.x = closestX + (deltaX / distanceToTile) * radius;
+              position.z = closestZ + (deltaZ / distanceToTile) * radius;
               } else {
-                let n = e.x - c,
-                  r = c + 1 - e.x,
-                  i = e.z - l,
-                  a = l + 1 - e.z,
-                  o = Math.min(n, r, i, a);
-                o === n
-                  ? (e.x = c - t)
-                  : o === r
-                    ? (e.x = c + 1 + t)
-                    : (e.z = o === i ? l - t : l + 1 + t);
+              const distanceToLeft = position.x - tileWorldX;
+              const distanceToRight = tileWorldX + 1 - position.x;
+              const distanceToTop = position.z - tileWorldZ;
+              const distanceToBottom = tileWorldZ + 1 - position.z;
+              const nearestEdge = Math.min(distanceToLeft, distanceToRight, distanceToTop, distanceToBottom);
+              if (nearestEdge === distanceToLeft) position.x = tileWorldX - radius;
+              else if (nearestEdge === distanceToRight) position.x = tileWorldX + 1 + radius;
+              else position.z = nearestEdge === distanceToTop ? tileWorldZ - radius : tileWorldZ + 1 + radius;
               }
             }
           }
       }
     }
-    raycast(e, t, n, r, i = {}) {
-      let a = this.toTile(e),
-        o = this.toTile(t),
-        s = n - e,
-        c = r - t,
-        l = Math.hypot(s, c);
-      if (l < 1e-6) return null;
-      let u = s / l,
-        d = c / l,
-        f = u > 0 ? 1 : -1,
-        p = d > 0 ? 1 : -1,
-        m = u === 0 ? 1 / 0 : Math.abs(1 / u),
-        h = d === 0 ? 1 / 0 : Math.abs(1 / d),
-        g = e + 22 - a,
-        _ = t + 22 - o,
-        v = u === 0 ? 1 / 0 : (u > 0 ? 1 - g : g) * m,
-        y = d === 0 ? 1 / 0 : (d > 0 ? 1 - _ : _) * h,
-        b = 0;
-      for (let n = 0; n < 160; n++) {
+    raycast(startX, startZ, endX, endZ, result = {}) {
+      let tileX = this.toTile(startX);
+      let tileZ = this.toTile(startZ);
+      const deltaX = endX - startX;
+      const deltaZ = endZ - startZ;
+      const rayLength = Math.hypot(deltaX, deltaZ);
+      if (rayLength < 1e-6) return null;
+      const directionX = deltaX / rayLength;
+      const directionZ = deltaZ / rayLength;
+      const stepX = directionX > 0 ? 1 : -1;
+      const stepZ = directionZ > 0 ? 1 : -1;
+      const tileStepX = directionX === 0 ? Infinity : Math.abs(1 / directionX);
+      const tileStepZ = directionZ === 0 ? Infinity : Math.abs(1 / directionZ);
+      const offsetX = startX + 22 - tileX;
+      const offsetZ = startZ + 22 - tileZ;
+      let distanceToNextX = directionX === 0 ? Infinity : (directionX > 0 ? 1 - offsetX : offsetX) * tileStepX;
+      let distanceToNextZ = directionZ === 0 ? Infinity : (directionZ > 0 ? 1 - offsetZ : offsetZ) * tileStepZ;
+      let hitDistance = 0;
+      for (let step = 0; step < 160; step++) {
         if (
-          (v < y
-            ? ((b = v), (v += m), (a += f))
-            : ((b = y), (y += h), (o += p)),
-          b > l)
+          (distanceToNextX < distanceToNextZ
+            ? ((hitDistance = distanceToNextX), (distanceToNextX += tileStepX), (tileX += stepX))
+            : ((hitDistance = distanceToNextZ), (distanceToNextZ += tileStepZ), (tileZ += stepZ)),
+          hitDistance > rayLength)
         )
           return null;
-        if (this.blocksShots(a, o))
-          return (
-            (i.tx = a),
-            (i.ty = o),
-            (i.dist = b),
-            (i.x = e + u * b),
-            (i.z = t + d * b),
-            i
-          );
+        if (!this.blocksShots(tileX, tileZ)) continue;
+        result.tx = tileX;
+        result.ty = tileZ;
+        result.dist = hitDistance;
+        result.x = startX + directionX * hitDistance;
+        result.z = startZ + directionZ * hitDistance;
+        return result;
       }
       return null;
     }
@@ -1227,20 +1225,27 @@ varying vec3 vBladeWorld;`,
       for (let e of this.disposables) e.dispose && e.dispose();
       for (let e of Object.values(this.meshes)) e.dispose && e.dispose();
     }
-  },
-  Ql = {},
-  $l = (e, t) => Ql[e] || (Ql[e] = t()),
-  eu = (e, t = 18, n = 14) => $l(`s${e}_${t}_${n}`, () => new xr(e, t, n)),
-  tu = (e, t) => $l(`c${e}_${t}`, () => new pr(e, t, 5, 12)),
-  nu = (e, t, n, r = 16) =>
-    $l(`y${e}_${t}_${n}_${r}`, () => new hr(e, t, n, r)),
-  ru = (e, t, n) => $l(`b${e}_${t}_${n}`, () => new fr(e, t, n)),
-  iu = (e, t) =>
-    $l(`d${e}_${t}`, () => new xr(e, 20, 12, 0, Math.PI * 2, 0, Math.PI * t)),
-  au = (e, t) => $l(`t${e}_${t}`, () => new Sr(e, t, 8, 24)),
-  ou = new br(0.5, 0.64, 44).rotateX(-Math.PI / 2),
-  su = new mr(0.5, 36).rotateX(-Math.PI / 2),
-  cu = new br(0.7, 0.8, 44).rotateX(-Math.PI / 2),
-  lu = (e, t = {}) => new Nr({ color: e, roughness: 0.62, metalness: 0, ...t });
+}
 
-export { $l, Ql, World, au, cu, eu, iu, lu, nu, ou, ru, su, tu };
+const geometryCache: Record<string, any> = {};
+const getCachedGeometry = <T>(key: string, factory: () => T): T =>
+  geometryCache[key] || (geometryCache[key] = factory());
+const sphereGeometry = (radius: number, widthSegments = 18, heightSegments = 14) =>
+  getCachedGeometry(`s${radius}_${widthSegments}_${heightSegments}`, () => new SphereGeometry(radius, widthSegments, heightSegments));
+const capsuleGeometry = (radius: number, length: number) =>
+  getCachedGeometry(`c${radius}_${length}`, () => new CapsuleGeometry(radius, length, 5, 12));
+const cylinderGeometry = (topRadius: number, bottomRadius: number, height: number, segments = 16) =>
+  getCachedGeometry(`y${topRadius}_${bottomRadius}_${height}_${segments}`, () => new CylinderGeometry(topRadius, bottomRadius, height, segments));
+const boxGeometry = (width: number, height: number, depth: number) =>
+  getCachedGeometry(`b${width}_${height}_${depth}`, () => new BoxGeometry(width, height, depth));
+const partialSphereGeometry = (radius: number, arc: number) =>
+  getCachedGeometry(`d${radius}_${arc}`, () => new SphereGeometry(radius, 20, 12, 0, Math.PI * 2, 0, Math.PI * arc));
+const torusGeometry = (radius: number, tube: number) =>
+  getCachedGeometry(`t${radius}_${tube}`, () => new TorusGeometry(radius, tube, 8, 24));
+const brawlerRingGeometry = new RingGeometry(0.5, 0.64, 44).rotateX(-Math.PI / 2);
+const playerDiscGeometry = new CircleGeometry(0.5, 36).rotateX(-Math.PI / 2);
+const superRingGeometry = new RingGeometry(0.7, 0.8, 44).rotateX(-Math.PI / 2);
+const standardMaterial = (color: any, options: Record<string, unknown> = {}) =>
+  new MeshStandardMaterial({ color, roughness: 0.62, metalness: 0, ...options });
+
+export { getCachedGeometry, geometryCache, World, torusGeometry, superRingGeometry, sphereGeometry, partialSphereGeometry, standardMaterial, cylinderGeometry, brawlerRingGeometry, boxGeometry, playerDiscGeometry, capsuleGeometry };

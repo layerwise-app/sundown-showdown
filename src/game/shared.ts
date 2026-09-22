@@ -1,99 +1,88 @@
 // @ts-nocheck
-import * as THREE from "three";
-import { EffectComposer as EffectComposerAddon } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass as RenderPassAddon } from "three/addons/postprocessing/RenderPass.js";
-import { ShaderPass as ShaderPassAddon } from "three/addons/postprocessing/ShaderPass.js";
-import { GTAOPass as GTAOPassAddon } from "three/addons/postprocessing/GTAOPass.js";
-import { UnrealBloomPass as UnrealBloomPassAddon } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { OutputPass as OutputPassAddon } from "three/addons/postprocessing/OutputPass.js";
+import {
+  RepeatWrapping,
+  ClampToEdgeWrapping,
+  MirroredRepeatWrapping,
+  NearestFilter,
+  LinearFilter,
+  LinearMipmapLinearFilter,
+  UnsignedByteType,
+  UnsignedShortType,
+  UnsignedIntType,
+  FloatType,
+  HalfFloatType,
+  UnsignedShort4444Type,
+  UnsignedShort5551Type,
+  UnsignedInt248Type,
+  RGBAFormat,
+  DepthFormat,
+  DepthStencilFormat,
+  RedFormat,
+  RedIntegerFormat,
+  RGFormat,
+  RGIntegerFormat,
+  RGBAIntegerFormat,
+  InterpolateSmooth,
+  InterpolateBezier,
+  SRGBColorSpace,
+  DynamicDrawUsage,
+  Vector2,
+  Quaternion,
+  Vector3,
+  Vector4,
+  WebGLRenderTarget,
+  Matrix4,
+  Euler,
+  Group,
+  Color,
+  Scene,
+  BufferAttribute,
+  Float32BufferAttribute,
+  BufferGeometry,
+  Plane,
+  MeshBasicMaterial,
+  Mesh,
+  InstancedMesh,
+  Points,
+  CanvasTexture,
+  BoxGeometry,
+  CapsuleGeometry,
+  CircleGeometry,
+  CylinderGeometry,
+  ConeGeometry,
+  DodecahedronGeometry,
+  PlaneGeometry,
+  RingGeometry,
+  SphereGeometry,
+  TorusGeometry,
+  ShaderMaterial,
+  MeshStandardMaterial,
+  HemisphereLight,
+  PerspectiveCamera,
+  SpotLight,
+  PointLight,
+  DirectionalLight,
+  Raycaster,
+  ShaderChunk,
+  PMREMGenerator,
+  WebGLRenderer,
+} from "three";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 
-// Keep the compact aliases used by the original game bundle, but source the
-// actual implementations from the pinned Three.js CDN entry point.
-const {
-  RepeatWrapping: e,
-  ClampToEdgeWrapping: t,
-  MirroredRepeatWrapping: n,
-  NearestFilter: r,
-  LinearFilter: i,
-  LinearMipmapLinearFilter: a,
-  UnsignedByteType: o,
-  UnsignedShortType: s,
-  UnsignedIntType: c,
-  FloatType: l,
-  HalfFloatType: u,
-  UnsignedShort4444Type: d,
-  UnsignedShort5551Type: f,
-  UnsignedInt248Type: p,
-  RGBAFormat: m,
-  DepthFormat: h,
-  DepthStencilFormat: g,
-  RedFormat: _,
-  RedIntegerFormat: v,
-  RGFormat: y,
-  RGIntegerFormat: b,
-  RGBAIntegerFormat: x,
-  InterpolateSmooth: w,
-  InterpolateBezier: T,
-  SRGBColorSpace: k,
-  DynamicDrawUsage: N,
-  Vector2: V,
-  Quaternion: _e,
-  Vector3: H,
-  Vector4: Ne,
-  WebGLRenderTarget: Fe,
-  Matrix4: Re,
-  Euler: Ke,
-  Group: ut,
-  Color: J,
-  Scene: vt,
-  BufferAttribute: Zt,
-  Float32BufferAttribute: en,
-  BufferGeometry: pn,
-  Plane: _n,
-  MeshBasicMaterial: Tn,
-  Mesh: Ln,
-  InstancedMesh: Yn,
-  Points: ar,
-  CanvasTexture: cr,
-  BoxGeometry: fr,
-  CapsuleGeometry: pr,
-  CircleGeometry: mr,
-  CylinderGeometry: hr,
-  ConeGeometry: gr,
-  DodecahedronGeometry: vr,
-  PlaneGeometry: yr,
-  RingGeometry: br,
-  SphereGeometry: xr,
-  TorusGeometry: Sr,
-  ShaderMaterial: jr,
-  MeshStandardMaterial: Nr,
-  HemisphereLight: ri,
-  PerspectiveCamera: hi,
-  SpotLight: _i,
-  PointLight: yi,
-  DirectionalLight: Si,
-  Raycaster: Hi,
-  ShaderChunk: Y,
-  PMREMGenerator: ga,
-  WebGLRenderer: uc,
-} = THREE;
-
-const yc = EffectComposerAddon;
-const bc = RenderPassAddon;
-const gc = ShaderPassAddon;
-const Ac = GTAOPassAddon;
-const Mc = UnrealBloomPassAddon;
-const Pc = OutputPassAddon;
-
-const q = new H(0, 0, 0);
+const q = new Vector3(0, 0, 0);
 const on = 0;
 const ao = false;
 const z = 180 / Math.PI;
 
-var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
-  TerrainStyle = { STONE: 0, CRATE: 1, BARREL: 2, CACTUS: 3, ROCK: 4, LAMP: 5 },
-  COLLISION_RADIUS = 0.4,
-  GAME_CONFIG = {
+const TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 } as const;
+const TerrainStyle = { STONE: 0, CRATE: 1, BARREL: 2, CACTUS: 3, ROCK: 4, LAMP: 5 } as const;
+const COLLISION_RADIUS = 0.4;
+const GAME_CONFIG = {
     bots: 7,
     gasDelay: 26,
     gasDuration: 140,
@@ -105,8 +94,8 @@ var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
     boxHp: 4200,
     cubeHp: 400,
     cubeDamage: 0.1,
-  },
-  LAMP_CONFIG = {
+};
+const LAMP_CONFIG = {
     height: 3.05,
     arm: 0.62,
     near: 0.4,
@@ -114,9 +103,9 @@ var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
     angle: 1,
     size: 0.55,
     nearClamp: 2.3,
-  },
-  identity = (e) => e,
-  BRAWLER_DEFS = {
+};
+const identity = <T>(value: T): T => value;
+const BRAWLER_DEFS = {
     dusty: {
       id: `dusty`,
       name: `DUSTY`,
@@ -273,8 +262,8 @@ var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
         breaksWalls: !0,
       },
     },
-  },
-  BOT_NAMES = [
+  };
+const BOT_NAMES = [
     `Rusty`,
     `Nova`,
     `Pixel`,
@@ -289,8 +278,8 @@ var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
     `Sprocket`,
     `Biscuit`,
     `Turbo`,
-  ],
-  DIFFICULTIES = {
+];
+const DIFFICULTIES = {
     easy: {
       label: `Easy`,
       damage: 0.5,
@@ -318,8 +307,8 @@ var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
       hunters: 3,
       engage: 9,
     },
-  },
-  QUALITY_PRESETS = {
+};
+const QUALITY_PRESETS = {
     low: {
       label: `Low`,
       dpr: 1,
@@ -372,8 +361,8 @@ var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
       lampMap: 2048,
       poolLights: 12,
     },
-  },
-  PCSS_SHADOW_CHUNK = `
+};
+const PCSS_SHADOW_CHUNK = `
 
 		#define PCSS_SUN_DEPTH_SOFTNESS ${(120 * 0.085 * 0.5).toFixed(4)}
 		#define PCSS_SUN_MAX_WORLD ${(0.2).toFixed(4)}
@@ -494,8 +483,8 @@ var TileType = { EMPTY: 0, WALL: 1, BUSH: 2, WATER: 3 },
 
 		}
 
-`,
-  pcssPatchState = null;
+`;
+let pcssPatchState: boolean | null = null;
 function findVsmShadowBlock(e) {
   let t = e.indexOf(`#elif defined( SHADOWMAP_TYPE_VSM )`);
   if (t < 0) return null;
@@ -529,9 +518,9 @@ function findVsmShadowBlock(e) {
 function patchSpotAttenuation() {
   let e = `getDistanceAttenuation( lightDistance, spotLight.distance, spotLight.decay )`,
     t = `getDistanceAttenuation( max( lightDistance, ${LAMP_CONFIG.nearClamp.toFixed(2)} ), spotLight.distance, spotLight.decay )`,
-    n = Y.lights_pars_begin;
+    n = ShaderChunk.lights_pars_begin;
   n.includes(e)
-    ? (Y.lights_pars_begin = n.replace(e, t))
+    ? (ShaderChunk.lights_pars_begin = n.replace(e, t))
     : console.warn(
         `[pipeline] spot light chunk changed - lamps keep plain inverse-square falloff`,
       );
@@ -539,10 +528,10 @@ function patchSpotAttenuation() {
 function installPcssShadowPatch() {
   if (pcssPatchState !== null) return pcssPatchState;
   patchSpotAttenuation();
-  let e = Y.shadowmap_pars_fragment,
+  let e = ShaderChunk.shadowmap_pars_fragment,
     t = findVsmShadowBlock(e);
   return t
-    ? ((Y.shadowmap_pars_fragment =
+    ? ((ShaderChunk.shadowmap_pars_fragment =
         e.slice(0, t.start) +
         `
 ` +
@@ -558,7 +547,7 @@ function installPcssShadowPatch() {
       (pcssPatchState = !1),
       !1);
 }
-var SANITIZE_SHADER = {
+const SANITIZE_SHADER = {
     name: `SanitizeShader`,
     uniforms: { tDiffuse: { value: null } },
     vertexShader: `
@@ -576,14 +565,14 @@ var SANITIZE_SHADER = {
       c.rgb = mix( c.rgb, vec3( 0.0 ), vec3( bad ) );
       gl_FragColor = vec4( clamp( c.rgb, 0.0, 120.0 ), 1.0 );
     }`,
-  },
-  GRADE_SHADER = {
+  };
+const GRADE_SHADER = {
     name: `GradeShader`,
     uniforms: {
       tDiffuse: { value: null },
       uVignette: { value: 0.32 },
       uSaturation: { value: 1.1 },
-      uTint: { value: new J(1, 1, 1) },
+      uTint: { value: new Color(1, 1, 1) },
     },
     vertexShader: `
     varying vec2 vUv;
@@ -608,20 +597,20 @@ var SANITIZE_SHADER = {
       c.rgb = max( mix( vec3( l ), c.rgb, uSaturation ), 0.0 ) * tint;
       gl_FragColor = c;
     }`,
-  },
-  RenderPipeline = class {
+  };
+class RenderPipeline {
     constructor(e, t, n) {
       ((this.scene = t),
         (this.camera = n),
         (this.pcssAvailable = installPcssShadowPatch()));
-      let r = new uc({
+      let r = new WebGLRenderer({
         canvas: e,
         antialias: !1,
         powerPreference: `high-performance`,
         stencil: !1,
       });
       ((this.renderer = r),
-        (r.outputColorSpace = k),
+        (r.outputColorSpace = SRGBColorSpace),
         (r.toneMapping = 4),
         (r.toneMappingExposure = 1),
         (r.shadowMap.enabled = !0),
@@ -660,19 +649,19 @@ var SANITIZE_SHADER = {
           (this.composer.passes.forEach((e) => e.dispose && e.dispose()),
           this.composer.renderTarget1.dispose(),
           this.composer.renderTarget2.dispose()));
-      let a = t.getDrawingBufferSize(new V()),
-        o = new yc(t, new Fe(a.x, a.y, { type: u, samples: e.msaa }));
+      let a = t.getDrawingBufferSize(new Vector2()),
+        o = new EffectComposer(t, new WebGLRenderTarget(a.x, a.y, { type: HalfFloatType, samples: e.msaa }));
       if (
         (o.setPixelRatio(i),
         o.setSize(n, r),
         (this.composer = o),
-        o.addPass(new bc(this.scene, this.camera)),
-        o.addPass(new gc(SANITIZE_SHADER)),
+        o.addPass(new RenderPass(this.scene, this.camera)),
+        o.addPass(new ShaderPass(SANITIZE_SHADER)),
         (this.gtao = null),
         e.ao)
       ) {
-        let e = new Ac(this.scene, this.camera, a.x, a.y);
-        ((e.output = Ac.OUTPUT.Default),
+        let e = new GTAOPass(this.scene, this.camera, a.x, a.y);
+        ((e.output = GTAOPass.OUTPUT.Default),
           (e.blendIntensity = 0.85),
           e.updateGtaoMaterial({
             radius: 0.55,
@@ -704,12 +693,12 @@ var SANITIZE_SHADER = {
           o.addPass(e),
           (this.gtao = e));
       }
-      ((this.bloom = new Mc(new V(a.x, a.y), 0.5, 0.72, 1.2)),
+      ((this.bloom = new UnrealBloomPass(new Vector2(a.x, a.y), 0.5, 0.72, 1.2)),
         (this.bloom.enabled = e.bloom && this.toggles.bloom),
         o.addPass(this.bloom),
-        (this.grade = new gc(GRADE_SHADER)),
+        (this.grade = new ShaderPass(GRADE_SHADER)),
         o.addPass(this.grade),
-        o.addPass(new Pc()));
+        o.addPass(new OutputPass()));
     }
     setToggle(e, t) {
       ((this.toggles[e] = t),
@@ -732,8 +721,8 @@ var SANITIZE_SHADER = {
     render(e) {
       ((this.renderer.shadowMap.needsUpdate = !0), this.composer.render(e));
     }
-  };
-function Qc(e) {
+}
+function createSeededRandom(e) {
   let t = e | 0;
   return function () {
     t = (t + 1831565813) | 0;
@@ -744,30 +733,36 @@ function Qc(e) {
     );
   };
 }
-var $c = (e, t, n) => Math.max(t, Math.min(n, e)),
-  el = (e, t, n) => e + (t - e) * n,
-  tl = (e, t, n) => {
-    let r = $c((n - e) / (t - e), 0, 1);
-    return r * r * (3 - 2 * r);
-  },
-  nl = (e, t, n, r) => el(e, t, 1 - Math.exp(-n * r)),
-  Q = (e = 0, t = 1) => e + Math.random() * (t - e);
-function rl(e, t) {
-  let n = (t - e) % (Math.PI * 2);
+const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
+const lerp = (start, end, progress) => start + (end - start) * progress;
+const smoothstep = (edgeStart, edgeEnd, value) => {
+  const progress = clamp((value - edgeStart) / (edgeEnd - edgeStart), 0, 1);
+  return progress * progress * (3 - 2 * progress);
+};
+const damp = (current, target, rate, deltaTime) =>
+  lerp(current, target, 1 - Math.exp(-rate * deltaTime));
+const randomRange = (minimum = 0, maximum = 1) =>
+  minimum + Math.random() * (maximum - minimum);
+function shortestAngleDelta(from, to) {
+  let delta = (to - from) % (Math.PI * 2);
   return (
-    n > Math.PI && (n -= Math.PI * 2),
-    n < -Math.PI && (n += Math.PI * 2),
-    n
+    delta > Math.PI && (delta -= Math.PI * 2),
+    delta < -Math.PI && (delta += Math.PI * 2),
+    delta
   );
 }
-var il = (e, t, n, r) => e + rl(e, t) * (1 - Math.exp(-n * r));
-function al(e, t) {
-  let n = document.createElement(`canvas`);
-  return ((n.width = e), (n.height = t), n);
+const dampAngle = (current, target, rate, deltaTime) =>
+  current + shortestAngleDelta(current, target) * (1 - Math.exp(-rate * deltaTime));
+function createCanvas(width, height) {
+  const canvas = document.createElement(`canvas`);
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
 }
-var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
-  sl = (e, t, n, r) => Math.sqrt(ol(e, t, n, r)),
-  cl = {
+const distanceSquared = (x1, z1, x2, z2) => (x1 - x2) ** 2 + (z1 - z2) ** 2;
+const distance = (x1, z1, x2, z2) => Math.sqrt(distanceSquared(x1, z1, x2, z2));
+const
+  baseLightingProfile = {
     sun: 16777215,
     sunI: 0,
     sky: 4152528,
@@ -780,7 +775,7 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
     sat: 1.08,
     vig: 0.46,
   },
-  ll = {
+  brightLightingProfile = {
     sun: 16773336,
     sunI: 4.6,
     sky: 12573951,
@@ -793,9 +788,9 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
     sat: 1.12,
     vig: 0.28,
   },
-  ul = [
-    { h: 0, ...cl },
-    { h: 4.9, ...cl },
+  lightingProfiles = [
+    { h: 0, ...baseLightingProfile },
+    { h: 4.9, ...baseLightingProfile },
     {
       h: 6.1,
       sun: 16742970,
@@ -824,8 +819,8 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
       sat: 1.12,
       vig: 0.3,
     },
-    { h: 10.5, ...ll },
-    { h: 15, ...ll },
+    { h: 10.5, ...brightLightingProfile },
+    { h: 15, ...brightLightingProfile },
     {
       h: 17.2,
       sun: 16754002,
@@ -868,34 +863,34 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
       sat: 1.1,
       vig: 0.4,
     },
-    { h: 20.3, ...cl },
-    { h: 24, ...cl },
+    { h: 20.3, ...baseLightingProfile },
+    { h: 24, ...baseLightingProfile },
   ].map((e) => ({
     ...e,
-    sun: new J(e.sun),
-    sky: new J(e.sky),
-    ground: new J(e.ground),
-    fill: new J(e.fill),
+    sun: new Color(e.sun),
+    sky: new Color(e.sky),
+    ground: new Color(e.ground),
+    fill: new Color(e.fill),
   })),
-  dl = new J(8825087),
-  fl = 1.35,
-  pl = new J(0.74, 0.88, 1.26),
-  ml = new J(16758112),
-  hl = 46,
-  gl = 2,
-  _l = 60,
-  vl = new H(),
-  yl = new Re(),
-  bl = new H(),
-  xl = new H(),
-  Sl = new H(),
-  Cl = new H(0, 1, 0),
-  wl = new Hi(),
-  Tl = new V(),
-  El = new _n(new H(0, 1, 0), 0),
-  Dl = new H(),
-  Ol = new H(),
-  kl = class {
+  moonLightColor = new Color(8825087),
+  sunLightIntensity = 1.35,
+  nightTintColor = new Color(0.74, 0.88, 1.26),
+  lampGlowColor = new Color(16758112),
+  lampIntensity = 46,
+  lampDecay = 2,
+  shadowFitDistance = 60,
+  shadowCenter = new Vector3(),
+  shadowRotation = new Matrix4(),
+  shadowRight = new Vector3(),
+  shadowUp = new Vector3(),
+  worldUpVector = new Vector3(),
+  upAxis = new Vector3(0, 1, 0),
+  lightingRaycaster = new Raycaster(),
+  screenPosition = new Vector2(),
+  groundPlane = new Plane(new Vector3(0, 1, 0), 0),
+  rayHitPosition = new Vector3(),
+  shadowFocus = new Vector3();
+class Lighting {
     constructor(e, t) {
       ((this.scene = e),
         (this.pipeline = t),
@@ -903,10 +898,10 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         (this.night = 0),
         (this.ambientLevel = 1),
         (this.state = {
-          sun: new J(),
-          sky: new J(),
-          ground: new J(),
-          fill: new J(),
+          sun: new Color(),
+          sky: new Color(),
+          ground: new Color(),
+          fill: new Color(),
           sunI: 0,
           hemiI: 1,
           fillI: 0,
@@ -915,11 +910,11 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
           sat: 1,
           vig: 0.3,
         }),
-        (this.keyDir = new H(0, 1, 0)),
+        (this.keyDir = new Vector3(0, 1, 0)),
         (this.shadowRadius = 20),
         (this.tier = 1),
         (this.mapSize = 4096));
-      let n = new Si(16777215, 3);
+      let n = new DirectionalLight(16777215, 3);
       ((n.name = `key`),
         (n.castShadow = !0),
         n.shadow.mapSize.set(this.mapSize, this.mapSize),
@@ -929,9 +924,9 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         (n.shadow.normalBias = 0.028),
         e.add(n, n.target),
         (this.key = n));
-      let r = new Si(14543103, 0.4);
+      let r = new DirectionalLight(14543103, 0.4);
       (r.position.set(2.5, 9, 10), e.add(r), (this.fill = r));
-      let i = new ri(13624575, 11046504, 1.2);
+      let i = new HemisphereLight(13624575, 11046504, 1.2);
       (e.add(i),
         (this.hemi = i),
         this.buildEnvironment(),
@@ -950,14 +945,14 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
           distance: 4,
           score: 0,
         });
-      ((this.focus = new H()),
+      ((this.focus = new Vector3()),
         (this.lamps = []),
         (this.lampSlots = []),
         (this.lampShadowSlots = 4),
         (this.lampGlass = null),
         (this.cones = []),
-        (this.coneMaterial = new jr({
-          uniforms: { uColor: { value: ml.clone() }, uStrength: { value: 0 } },
+        (this.coneMaterial = new ShaderMaterial({
+          uniforms: { uColor: { value: lampGlowColor.clone() }, uStrength: { value: 0 } },
           vertexShader: `
         varying vec3 vN; varying vec3 vView; varying float vH;
         void main() {
@@ -988,10 +983,10 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         this.setTime(this.time));
     }
     buildEnvironment() {
-      let e = new vt(),
-        t = new Ln(
-          new xr(10, 32, 16),
-          new jr({
+      let e = new Scene(),
+        t = new Mesh(
+          new SphereGeometry(10, 32, 16),
+          new ShaderMaterial({
             side: 1,
             vertexShader: `varying vec3 vDir; void main() { vDir = normalize( position ); gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 ); }`,
             fragmentShader: `
@@ -1007,13 +1002,13 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
           }),
         );
       e.add(t);
-      let n = new ga(this.pipeline.renderer);
+      let n = new PMREMGenerator(this.pipeline.renderer);
       ((this.envTarget = n.fromScene(e, 0.03)),
         (this.scene.environment = this.envTarget.texture),
         n.dispose(),
         t.geometry.dispose(),
         t.material.dispose(),
-        (this.scene.background = new J(724506)));
+        (this.scene.background = new Color(724506)));
     }
     applyQuality(e) {
       ((this.tier = e.tier),
@@ -1037,7 +1032,7 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
       let e = LAMP_CONFIG.size / (4 * Math.tan(LAMP_CONFIG.angle));
       if (this.pcss) {
         this.key.shadow.radius =
-          this.tier + $c(10 / (this.shadowRadius * 2), 0.001, 0.999);
+          this.tier + clamp(10 / (this.shadowRadius * 2), 0.001, 0.999);
         let t = Math.max(0, this.tier - 1);
         this.lampSlots.forEach((n) => (n.shadow.radius = -(t + e)));
       } else
@@ -1046,7 +1041,7 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
     }
     setPoolSize(e) {
       for (; this.pool.length < e;) {
-        let e = new yi(16777215, 0, 5, 2);
+        let e = new PointLight(16777215, 0, 5, 2);
         (e.position.set(0, -50, 0), this.scene.add(e), this.pool.push(e));
       }
       for (; this.pool.length > e;) {
@@ -1056,7 +1051,7 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
     }
     buildLampSlots(e) {
       for (let t = 0; t < e; t++) {
-        let e = new _i(ml, 0, LAMP_CONFIG.far, LAMP_CONFIG.angle, 0.55, gl);
+        let e = new SpotLight(lampGlowColor, 0, LAMP_CONFIG.far, LAMP_CONFIG.angle, 0.55, lampDecay);
         (e.position.set(0, LAMP_CONFIG.height, 0),
           (e.castShadow = t < this.lampShadowSlots),
           e.shadow.mapSize.set(1024, 1024),
@@ -1080,10 +1075,10 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         }))),
         (this.lampGlass = t));
       let n = LAMP_CONFIG.height - 0.12,
-        r = new gr(Math.tan(LAMP_CONFIG.angle * 0.8) * n, n, 40, 1, !0);
+        r = new ConeGeometry(Math.tan(LAMP_CONFIG.angle * 0.8) * n, n, 40, 1, !0);
       r.translate(0, n / 2, 0);
       for (let e of this.lamps) {
-        let t = new Ln(r, this.coneMaterial);
+        let t = new Mesh(r, this.coneMaterial);
         (t.position.set(e.x, 0, e.z),
           (t.userData.noAO = !0),
           (t.renderOrder = 5),
@@ -1096,17 +1091,17 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
     }
     sample(e) {
       let t = 0;
-      for (; t < ul.length - 2 && e >= ul[t + 1].h;) t++;
-      let n = ul[t],
-        r = ul[t + 1],
-        i = $c((e - n.h) / (r.h - n.h), 0, 1),
+      for (; t < lightingProfiles.length - 2 && e >= lightingProfiles[t + 1].h;) t++;
+      let n = lightingProfiles[t],
+        r = lightingProfiles[t + 1],
+        i = clamp((e - n.h) / (r.h - n.h), 0, 1),
         a = this.state;
       (a.sun.lerpColors(n.sun, r.sun, i),
         a.sky.lerpColors(n.sky, r.sky, i),
         a.ground.lerpColors(n.ground, r.ground, i),
         a.fill.lerpColors(n.fill, r.fill, i));
       for (let e of [`sunI`, `hemiI`, `fillI`, `envI`, `exp`, `sat`, `vig`])
-        a[e] = el(n[e], r[e], i);
+        a[e] = lerp(n[e], r[e], i);
       return a;
     }
     applyTime() {
@@ -1114,8 +1109,8 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         t = this.sample(e),
         n = ((e - 6) / 13) * Math.PI,
         r = Math.sin(n),
-        i = e > 6 && e < 19 ? tl(0, 0.2, r) : 0,
-        a = Math.max(tl(19.15, 20.2, e), 1 - tl(4.7, 5.7, e));
+        i = e > 6 && e < 19 ? smoothstep(0, 0.2, r) : 0,
+        a = Math.max(smoothstep(19.15, 20.2, e), 1 - smoothstep(4.7, 5.7, e));
       if (i > 5e-4)
         (this.keyDir
           .set(Math.cos(n), Math.max(r * 0.85, 0.17), -(0.22 + 0.3 * r))
@@ -1125,8 +1120,8 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
       else {
         let t = (e > 12 ? e - 20 : e + 4) * 0.06;
         (this.keyDir.set(0.55 - t, 0.78, -0.5).normalize(),
-          this.key.color.copy(dl),
-          (this.key.intensity = fl * a));
+          this.key.color.copy(moonLightColor),
+          (this.key.intensity = sunLightIntensity * a));
       }
       (this.hemi.color.copy(t.sky),
         this.hemi.groundColor.copy(t.ground),
@@ -1136,8 +1131,8 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         (this.scene.environmentIntensity = t.envI),
         this.scene.background.copy(t.sky).multiplyScalar(0.18),
         (this.pipeline.renderer.toneMappingExposure = t.exp),
-        (this.night = Math.max(tl(18.5, 19.55, e), 1 - tl(5.4, 6.3, e))),
-        (this.ambientLevel = el(1, 0.36, this.night)));
+        (this.night = Math.max(smoothstep(18.5, 19.55, e), 1 - smoothstep(5.4, 6.3, e))),
+        (this.ambientLevel = lerp(1, 0.36, this.night)));
     }
     addLight(e, t, n, r, i, a = 5) {
       if (this.requestCount >= this.requests.length || i <= 0.01) return;
@@ -1187,8 +1182,9 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         n = t > 0.002;
       for (let e of this.lampSlots)
         e.castShadow && e.shadow.map === null && (e.shadow.needsUpdate = !0);
-      (this.lampGlass && (this.lampGlass.emissiveIntensity = 0.15 + t * 4.2),
-        (this.coneMaterial.uniforms.uStrength.value = t * 0.6));
+      if (this.lampGlass) this.lampGlass.emissiveIntensity = 0.15 + t * 4.2;
+      const coneStrength = this.coneMaterial?.uniforms?.uStrength;
+      if (coneStrength) coneStrength.value = t * 0.6;
       for (let e of this.cones) e.visible = n;
       if (!n || this.lamps.length === 0) {
         for (let e of this.lampSlots)
@@ -1205,7 +1201,7 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
           ((r.intensity = 0), (r.shadow.autoUpdate = !1));
           continue;
         }
-        let a = 1 - tl(19, 25, i.d),
+        let a = 1 - smoothstep(19, 25, i.d),
           o =
             1 +
             Math.sin(e * 7 + i.phase) * 0.006 +
@@ -1213,9 +1209,9 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         (r.position.set(i.x, LAMP_CONFIG.height - 0.52, i.z),
           r.target.position.set(i.x, 0, i.z),
           r.target.updateMatrixWorld(),
-          (r.intensity = hl * t * a * o),
+          (r.intensity = lampIntensity * t * a * o),
           r.castShadow &&
-            ((r.shadow.intensity = 1 - tl(10.5, 14.5, i.d)),
+            ((r.shadow.intensity = 1 - smoothstep(10.5, 14.5, i.d)),
             (r.shadow.autoUpdate =
               r.intensity > 0.01 && r.shadow.intensity > 0.005)));
       }
@@ -1231,21 +1227,21 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         ],
         n = [];
       for (let [r, i] of t) {
-        (Tl.set(r, i), wl.setFromCamera(Tl, e));
-        let t = wl.ray.intersectPlane(El, Dl);
-        t && wl.ray.origin.distanceTo(t) < 90
+        (screenPosition.set(r, i), lightingRaycaster.setFromCamera(screenPosition, e));
+        let t = lightingRaycaster.ray.intersectPlane(groundPlane, rayHitPosition);
+        t && lightingRaycaster.ray.origin.distanceTo(t) < 90
           ? n.push(t.clone())
           : n.push(
-              wl.ray.origin
+              lightingRaycaster.ray.origin
                 .clone()
-                .addScaledVector(wl.ray.direction, 90)
+                .addScaledVector(lightingRaycaster.ray.direction, 90)
                 .setY(0),
             );
       }
-      Ol.copy(n[4]).add(n[5]).multiplyScalar(0.5);
+      shadowFocus.copy(n[4]).add(n[5]).multiplyScalar(0.5);
       let r = 0;
-      for (let e = 0; e < 4; e++) r = Math.max(r, Ol.distanceTo(n[e]));
-      let i = $c(Math.ceil(r + 3.5), 12, 46);
+      for (let e = 0; e < 4; e++) r = Math.max(r, shadowFocus.distanceTo(n[e]));
+      let i = clamp(Math.ceil(r + 3.5), 12, 46);
       ((i > this.shadowRadius || i < this.shadowRadius - 3) &&
         ((this.shadowRadius = i), this.updateShadowParams()),
         (r = this.shadowRadius));
@@ -1256,20 +1252,20 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         (a.top = r),
         (a.bottom = -r),
         a.updateProjectionMatrix()),
-        yl.lookAt(vl.copy(this.keyDir).multiplyScalar(_l), Sl, Cl),
-        bl.setFromMatrixColumn(yl, 0),
-        xl.setFromMatrixColumn(yl, 1));
+        shadowRotation.lookAt(shadowCenter.copy(this.keyDir).multiplyScalar(shadowFitDistance), worldUpVector, upAxis),
+        shadowRight.setFromMatrixColumn(shadowRotation, 0),
+        shadowUp.setFromMatrixColumn(shadowRotation, 1));
       let o = ((2 * r) / this.mapSize) * 64,
-        s = Ol.dot(bl),
-        c = Ol.dot(xl);
-      (Ol.addScaledVector(bl, Math.round(s / o) * o - s),
-        Ol.addScaledVector(xl, Math.round(c / o) * o - c),
-        this.key.target.position.copy(Ol),
-        this.key.position.copy(Ol).addScaledVector(this.keyDir, _l),
+        s = shadowFocus.dot(shadowRight),
+        c = shadowFocus.dot(shadowUp);
+      (shadowFocus.addScaledVector(shadowRight, Math.round(s / o) * o - s),
+        shadowFocus.addScaledVector(shadowUp, Math.round(c / o) * o - c),
+        this.key.target.position.copy(shadowFocus),
+        this.key.position.copy(shadowFocus).addScaledVector(this.keyDir, shadowFitDistance),
         this.key.target.updateMatrixWorld(),
         this.key.updateMatrixWorld(),
-        this.fill.target.position.copy(Ol),
-        this.fill.position.set(Ol.x + 2.5, 9, Ol.z + 10),
+        this.fill.target.position.copy(shadowFocus),
+        this.fill.position.set(shadowFocus.x + 2.5, 9, shadowFocus.z + 10),
         this.fill.target.updateMatrixWorld(),
         this.fill.target.parent || this.scene.add(this.fill.target));
     }
@@ -1281,24 +1277,25 @@ var ol = (e, t, n, r) => (e - n) * (e - n) + (t - r) * (t - r),
         this.fitShadow(n),
         this.updateLamps(t),
         i || this.assignPool());
-      let a = this.pipeline.grade;
-      a &&
-        ((a.uniforms.uSaturation.value = this.state.sat),
-        (a.uniforms.uVignette.value = this.state.vig),
-        a.uniforms.uTint.value.setRGB(1, 1, 1).lerp(pl, this.night));
+      const colorGrade = this.pipeline.grade;
+      if (colorGrade?.uniforms) {
+        colorGrade.uniforms.uSaturation && (colorGrade.uniforms.uSaturation.value = this.state.sat);
+        colorGrade.uniforms.uVignette && (colorGrade.uniforms.uVignette.value = this.state.vig);
+        colorGrade.uniforms.uTint?.value?.setRGB(1, 1, 1).lerp(nightTintColor, this.night);
+      }
     }
-  },
-  Al = new H();
+}
+const roundedBoxScratch = new Vector3();
 function jl(e, t, n, r, i, a) {
   let o = (2 * Math.PI * i) / 4,
     s = Math.max(a - 2 * i, 0),
     c = Math.PI / 4;
-  (Al.copy(t), (Al[r] = 0), Al.normalize());
+  (roundedBoxScratch.copy(t), (roundedBoxScratch[r] = 0), roundedBoxScratch.normalize());
   let l = (0.5 * o) / (o + s),
-    u = 1 - Al.angleTo(e) / c;
-  return Math.sign(Al[n]) === 1 ? u * l : s / (o + s) + l + l * (1 - u);
+    u = 1 - roundedBoxScratch.angleTo(e) / c;
+  return Math.sign(roundedBoxScratch[n]) === 1 ? u * l : s / (o + s) + l + l * (1 - u);
 }
-var RoundedBoxGeometry = class e extends fr {
+class RoundedBoxGeometry extends BoxGeometry {
   constructor(e = 1, t = 1, n = 1, r = 2, i = 0.1) {
     let a = r * 2 + 1;
     if (
@@ -1320,14 +1317,14 @@ var RoundedBoxGeometry = class e extends fr {
       (this.attributes.position = o.attributes.position),
       (this.attributes.normal = o.attributes.normal),
       (this.attributes.uv = o.attributes.uv));
-    let s = new H(),
-      c = new H(),
-      l = new H(e, t, n).divideScalar(2).subScalar(i),
+    let s = new Vector3(),
+      c = new Vector3(),
+      l = new Vector3(e, t, n).divideScalar(2).subScalar(i),
       u = this.attributes.position.array,
       d = this.attributes.normal.array,
       f = this.attributes.uv.array,
       p = u.length / 6,
-      m = new H(),
+      m = new Vector3(),
       h = 0.5 / a;
     for (let r = 0, a = 0; r < u.length; r += 3, a += 2)
       switch (
@@ -1379,7 +1376,7 @@ var RoundedBoxGeometry = class e extends fr {
   static fromJSON(t) {
     return new e(t.width, t.height, t.depth, t.segments, t.radius);
   }
-};
+}
 function mergeGeometries(e, t = !1) {
   let n = e[0].index !== null,
     r = new Set(Object.keys(e[0].attributes)),
@@ -1387,7 +1384,7 @@ function mergeGeometries(e, t = !1) {
     a = {},
     o = {},
     s = e[0].morphTargetsRelative,
-    c = new pn(),
+    c = new BufferGeometry(),
     l = 0;
   for (let u = 0; u < e.length; ++u) {
     let d = e[u],
@@ -1548,7 +1545,7 @@ function mergeAttributes(e) {
     a += s.count * n;
   }
   let o = new t(a),
-    s = new Zt(o, n, r),
+    s = new BufferAttribute(o, n, r),
     c = 0;
   for (let t = 0; t < e.length; ++t) {
     let r = e[t];
@@ -1564,7 +1561,7 @@ function mergeAttributes(e) {
   }
   return (i !== void 0 && (s.gpuType = i), s);
 }
-var tileIndex = (e, t) => t * 44 + e,
+const tileIndex = (e, t) => t * 44 + e,
   isInBounds = (e, t) => e >= 0 && t >= 0 && e < 44 && t < 44,
   CARDINAL_DIRECTIONS = [
     [1, 0],
@@ -1574,27 +1571,27 @@ var tileIndex = (e, t) => t * 44 + e,
   ],
   TILE_SIZE = 32,
   AO_TILE_SIZE = 16,
-  instanceMatrix = new Re(),
-  instancePosition = new H(),
-  instanceQuaternion = new _e(),
-  instanceScale = new H(),
-  instanceEuler = new Ke(),
-  instanceColor = new J(),
-  zeroInstanceMatrix = new Re().makeScale(0, 0, 0);
+  instanceMatrix = new Matrix4(),
+  instancePosition = new Vector3(),
+  instanceQuaternion = new Quaternion(),
+  instanceScale = new Vector3(),
+  instanceEuler = new Euler(),
+  instanceColor = new Color(),
+  zeroInstanceMatrix = new Matrix4().makeScale(0, 0, 0);
 function addHeightColors(e, t = 0.6, n = 1) {
   e.computeBoundingBox();
   let { min: r, max: i } = e.boundingBox,
     a = e.attributes.position,
     o = new Float32Array(a.count * 3);
   for (let e = 0; e < a.count; e++) {
-    let s = $c((a.getY(e) - r.y) / (i.y - r.y || 1), 0, 1),
+    let s = clamp((a.getY(e) - r.y) / (i.y - r.y || 1), 0, 1),
       c = t + (1 - t) * s ** +n;
     o[e * 3] = o[e * 3 + 1] = o[e * 3 + 2] = c;
   }
-  return (e.setAttribute(`color`, new Zt(o, 3)), e);
+  return (e.setAttribute(`color`, new BufferAttribute(o, 3)), e);
 }
 function createCrateTexture() {
-  let e = al(128, 128),
+  let e = createCanvas(128, 128),
     t = e.getContext(`2d`);
   ((t.fillStyle = `#b07a3c`), t.fillRect(0, 0, 128, 128));
   for (let e = 0; e < 4; e++)
@@ -1618,11 +1615,11 @@ function createCrateTexture() {
     [114, 114],
   ])
     (t.beginPath(), t.arc(e, n, 3.5, 0, 7), t.fill());
-  let n = new cr(e);
-  return ((n.colorSpace = k), (n.anisotropy = 4), n);
+  let n = new CanvasTexture(e);
+  return ((n.colorSpace = SRGBColorSpace), (n.anisotropy = 4), n);
 }
 function createBarrelTexture() {
-  let e = al(128, 64),
+  let e = createCanvas(128, 64),
     t = e.getContext(`2d`);
   for (let e = 0; e < 8; e++)
     ((t.fillStyle = e % 2 ? `#9a5f2e` : `#a86a34`),
@@ -1632,11 +1629,11 @@ function createBarrelTexture() {
   ((t.fillStyle = `#4c4f58`),
     t.fillRect(0, 9, 128, 7),
     t.fillRect(0, 48, 128, 7));
-  let n = new cr(e);
-  return ((n.colorSpace = k), n);
+  let n = new CanvasTexture(e);
+  return ((n.colorSpace = SRGBColorSpace), n);
 }
 function createNormalTexture() {
-  let t = al(256, 256),
+  let t = createCanvas(256, 256),
     n = t.getContext(`2d`),
     r = n.createImageData(256, 256),
     i = [
@@ -1665,100 +1662,93 @@ function createNormalTexture() {
         (r.data[s + 3] = 255));
     }
   n.putImageData(r, 0, 0);
-  let o = new cr(t);
-  return ((o.wrapS = o.wrapT = e), o.repeat.set(44 / 5, 44 / 5), o);
+  let o = new CanvasTexture(t);
+  o.wrapS = RepeatWrapping;
+  o.wrapT = RepeatWrapping;
+  o.repeat.set(44 / 5, 44 / 5);
+  return o;
 }
 
 export {
-  $c,
+  clamp,
+  DynamicDrawUsage,
+  SRGBColorSpace,
   AO_TILE_SIZE,
-  Ac,
-  Al,
+  GTAOPass,
+  roundedBoxScratch,
   BOT_NAMES,
   BRAWLER_DEFS,
   CARDINAL_DIRECTIONS,
   COLLISION_RADIUS,
-  Cl,
+  upAxis,
   DIFFICULTIES,
-  Dl,
-  El,
-  Fe,
+  rayHitPosition,
+  groundPlane,
+  WebGLRenderTarget,
   GAME_CONFIG,
   GRADE_SHADER,
-  H,
-  Hi,
-  J,
-  Ke,
+  Vector3,
+  Raycaster,
+  Color,
+  Euler,
   LAMP_CONFIG,
-  Ln,
-  Mc,
-  N,
-  Ne,
-  Nr,
-  Ol,
+  Mesh,
+  UnrealBloomPass,
+  Vector4,
+  MeshStandardMaterial,
+  shadowFocus,
   PCSS_SHADOW_CHUNK,
-  Pc,
-  Q,
+  OutputPass,
+  randomRange,
   QUALITY_PRESETS,
-  Qc,
-  Re,
+  createSeededRandom,
+  Matrix4,
   RenderPipeline,
   RoundedBoxGeometry,
   SANITIZE_SHADER,
-  Si,
-  Sl,
-  Sr,
-  T,
+  DirectionalLight,
+  worldUpVector,
+  TorusGeometry,
   TILE_SIZE,
   TerrainStyle,
   TileType,
-  Tl,
-  Tn,
-  V,
-  Y,
-  Yn,
-  Zt,
-  _,
-  _e,
-  _i,
-  _l,
-  _n,
-  a,
+  screenPosition,
+  MeshBasicMaterial,
+  Vector2,
+  ShaderChunk,
+  InstancedMesh,
+  BufferAttribute,
+  Quaternion,
+  SpotLight,
+  shadowFitDistance,
+  Plane,
   addHeightColors,
-  al,
+  createCanvas,
   ao,
-  ar,
-  b,
-  bc,
-  bl,
-  br,
-  c,
-  cl,
-  cr,
+  Points,
+  RenderPass,
+  shadowRight,
+  RingGeometry,
+  baseLightingProfile,
+  CanvasTexture,
   createBarrelTexture,
   createCrateTexture,
   createNormalTexture,
-  d,
-  dl,
-  e,
-  el,
-  en,
-  f,
+  moonLightColor,
+  lerp,
+  Float32BufferAttribute,
   findVsmShadowBlock,
-  fl,
-  fr,
-  g,
-  ga,
-  gc,
-  gl,
-  gr,
-  h,
-  hi,
-  hl,
-  hr,
-  i,
+  sunLightIntensity,
+  BoxGeometry,
+  PMREMGenerator,
+  ShaderPass,
+  lampDecay,
+  ConeGeometry,
+  PerspectiveCamera,
+  lampIntensity,
+  CylinderGeometry,
   identity,
-  il,
+  dampAngle,
   installPcssShadowPatch,
   instanceColor,
   instanceEuler,
@@ -1768,54 +1758,39 @@ export {
   instanceScale,
   isInBounds,
   jl,
-  jr,
-  k,
-  kl,
-  l,
-  ll,
-  m,
+  ShaderMaterial,
+  Lighting,
+  brightLightingProfile,
   mergeAttributes,
   mergeGeometries,
-  ml,
-  mr,
-  n,
-  nl,
-  o,
-  ol,
+  lampGlowColor,
+  CircleGeometry,
+  damp,
+  distanceSquared,
   on,
-  p,
   patchSpotAttenuation,
   pcssPatchState,
-  pl,
-  pn,
-  pr,
-  q,
-  r,
-  ri,
-  rl,
-  s,
-  sl,
-  t,
+  nightTintColor,
+  BufferGeometry,
+  CapsuleGeometry,
+  HemisphereLight,
+  shortestAngleDelta,
+  distance,
   tileIndex,
-  tl,
-  u,
-  uc,
-  ul,
-  ut,
-  v,
-  vl,
-  vr,
-  vt,
-  w,
-  wl,
-  x,
-  xl,
-  xr,
-  y,
-  yc,
-  yi,
-  yl,
-  yr,
-  z,
+  smoothstep,
+  WebGLRenderer,
+  lightingProfiles,
+  Group,
+  shadowCenter,
+  DodecahedronGeometry,
+  Scene,
+  lightingRaycaster,
+  shadowUp,
+  SphereGeometry,
+  EffectComposer,
+  PointLight,
+  shadowRotation,
+  PlaneGeometry,
   zeroInstanceMatrix,
 };
+// @ts-nocheck

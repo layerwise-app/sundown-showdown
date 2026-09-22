@@ -1,43 +1,43 @@
 // @ts-nocheck
 import {
-  $c,
+  clamp,
   BOT_NAMES,
   BRAWLER_DEFS,
   COLLISION_RADIUS,
   DIFFICULTIES,
   GAME_CONFIG,
-  H,
-  Ln,
-  Q,
+  Vector3,
+  Mesh,
+  randomRange,
   QUALITY_PRESETS,
   RenderPipeline,
-  Tn,
+  MeshBasicMaterial,
   a,
   ao,
-  br,
+  RingGeometry,
   c,
   e,
-  el,
-  hi,
+  lerp,
+  PerspectiveCamera,
   i,
-  kl,
+  Lighting,
   l,
-  mr,
+  CircleGeometry,
   n,
-  nl,
+  damp,
   o,
-  pn,
+  BufferGeometry,
   r,
   s,
-  sl,
+  distance,
   t,
-  tl,
+  smoothstep,
   u,
-  ut,
-  vt,
+  Group,
+  Scene,
   x,
   y,
-  yr,
+  PlaneGeometry,
   z
 } from './shared.js';
 import {
@@ -54,7 +54,7 @@ import {
   Input,
   SETTINGS_KEY,
   TIME_PRESETS,
-  Uu,
+  getKeyCode,
   ad,
   id,
   nd,
@@ -63,14 +63,14 @@ import {
   sd
 } from './gameplay.js';
 import { World } from './world.js';
-function cd(items) {
+function shuffleInPlace(items) {
   for (let index = items.length - 1; index > 0; index--) {
     let randomIndex = Math.floor(Math.random() * (index + 1));
     [items[index], items[randomIndex]] = [items[randomIndex], items[index]];
   }
   return items;
 }
-var Game = class {
+class Game {
   constructor(e = {}) {
     this.params = new URLSearchParams(location.search);
     let t = {};
@@ -80,8 +80,8 @@ var Game = class {
       t = {};
     }
     ((this.saved = t),
-      (this.scene = new vt()),
-      (this.camera = new hi(
+      (this.scene = new Scene()),
+      (this.camera = new PerspectiveCamera(
         FOV,
         window.innerWidth / window.innerHeight,
         1,
@@ -100,7 +100,7 @@ var Game = class {
       ),
       r = this.params.get(`q`) || t.quality || (n ? `medium` : `high`);
     ((this.userPickedQuality = !!(this.params.get(`q`) || t.quality)),
-      (this.pipeline.superSample = $c(
+      (this.pipeline.superSample = clamp(
         parseFloat(this.params.get(`ss`)) || 0,
         0,
         3
@@ -109,7 +109,7 @@ var Game = class {
     let i = this.params.get(`bots`) || t.difficulty;
     ((this.difficultyName = DIFFICULTIES[i] ? i : `normal`),
       (this.difficulty = DIFFICULTIES[this.difficultyName]),
-      (this.lighting = new kl(this.scene, this.pipeline)),
+      (this.lighting = new Lighting(this.scene, this.pipeline)),
       this.lighting.applyQuality(this.pipeline.quality),
       (this.audio = new GameAudio()),
       (this.audio.muted = !!t.muted),
@@ -125,7 +125,7 @@ var Game = class {
       (this.brains = []),
       (this.player = null),
       (this.spectate = null),
-      (this.focus = new H(0, 0, 0)),
+      (this.focus = new Vector3(0, 0, 0)),
       (this.shakeAmp = 0),
       (this.leanX = 0),
       (this.leanZ = 0),
@@ -137,7 +137,7 @@ var Game = class {
       (this.lastCount = 0),
       (this.camZoom = parseFloat(this.params.get(`zoom`)) || 1),
       (this.paused = !1),
-      (this.simSteps = $c(parseInt(this.params.get(`speed`), 10) || 1, 1, 16)),
+      (this.simSteps = clamp(parseInt(this.params.get(`speed`), 10) || 1, 1, 16)),
       (this.timePreset = 0),
       (this.autoTime = t.autoTime !== !1),
       (this.perf = {
@@ -163,14 +163,16 @@ var Game = class {
       e.selected && BRAWLER_DEFS[e.selected] && this.hud.select(e.selected),
       n && this.input.setTouchMode(!0));
     let o = parseFloat(this.params.get(`time`));
-    (Number.isFinite(o)
-      ? ((this.autoTime = !1), this.lighting.setTime(o))
-      : !this.autoTime &&
-        Number.isFinite(t.time) &&
-        this.lighting.setTime(t.time),
-      window.addEventListener(`keydown`, (e) => {
+    if (Number.isFinite(o)) {
+      this.autoTime = false;
+      this.lighting.setTime(o);
+    } else if (!this.autoTime && Number.isFinite(t.time)) {
+      this.lighting.setTime(t.time);
+    }
+
+    this.onKeyDown = (e) => {
         if (e.repeat) return;
-        let t = Uu(e);
+        let t = getKeyCode(e);
         (t === `KeyT` && this.cycleTime(),
           t === `KeyM` && this.setMuted(!this.audio.muted),
           t === `KeyP` &&
@@ -181,9 +183,10 @@ var Game = class {
             )),
           t === `Escape` &&
             document.getElementById(`settings`).classList.remove(`open`));
-      }),
-      this.hud.syncSettings(),
-      this.toMenu());
+    };
+    window.addEventListener(`keydown`, this.onKeyDown);
+    this.hud.syncSettings();
+    this.toMenu();
     let s = this.params.get(`auto`);
     (s && BRAWLER_DEFS[s] && this.startMatch(s),
       (this.last = performance.now()),
@@ -273,8 +276,8 @@ var Game = class {
   spawnRoster(e) {
     this.clearEntities();
     let t = this.world,
-      n = cd(t.spawns.slice()),
-      r = cd(BOT_NAMES.slice()),
+      n = shuffleInPlace(t.spawns.slice()),
+      r = shuffleInPlace(BOT_NAMES.slice()),
       i = Object.keys(BRAWLER_DEFS),
       a = GAME_CONFIG.bots + 1;
     for (let o = 0; o < a; o++) {
@@ -286,7 +289,7 @@ var Game = class {
           name: c ? `YOU` : r[o % r.length],
           x: t.center(a),
           z: t.center(s),
-          hueShift: c ? 0 : Q(-0.07, 0.07)
+          hueShift: c ? 0 : randomRange(-0.07, 0.07)
         });
       (this.brawlers.push(u),
         this.hud.addBrawler(u),
@@ -368,8 +371,8 @@ var Game = class {
         : n === 2 && i && i.alive && this.hud.banner(`SHOWDOWN!`, 1.5, !0);
   }
   shake(e, t, n) {
-    let r = sl(t, n, this.focus.x, this.focus.z);
-    this.shakeAmp = Math.max(this.shakeAmp, e * $c(1 - r / 8, 0, 1));
+    let r = distance(t, n, this.focus.x, this.focus.z);
+    this.shakeAmp = Math.max(this.shakeAmp, e * clamp(1 - r / 8, 0, 1));
   }
   clearBots() {
     for (let e of this.brawlers) {
@@ -387,7 +390,7 @@ var Game = class {
         name: r || BOT_NAMES[this.brawlers.length % BOT_NAMES.length],
         x: t,
         z: n,
-        hueShift: Q(-0.06, 0.06)
+        hueShift: randomRange(-0.06, 0.06)
       });
     return (
       this.brawlers.push(o),
@@ -398,23 +401,23 @@ var Game = class {
   }
   buildAimGuide() {
     let e = () =>
-        new Tn({
+        new MeshBasicMaterial({
           color: 16777215,
           transparent: !0,
           opacity: 0.18,
           depthWrite: !1
         }),
-      t = new ut();
+      t = new Group();
     ((t.userData.noAO = !0),
       (t.position.y = 0.06),
       (t.visible = !1),
-      (this.guideRect = new Ln(
-        new yr(1, 1).rotateX(-Math.PI / 2).translate(0.5, 0, 0),
+      (this.guideRect = new Mesh(
+        new PlaneGeometry(1, 1).rotateX(-Math.PI / 2).translate(0.5, 0, 0),
         e()
       )),
-      (this.guideSector = new Ln(new pn(), e())),
-      (this.guideCircle = new Ln(new mr(1, 48).rotateX(-Math.PI / 2), e())),
-      (this.guideRing = new Ln(new br(0.93, 1, 48).rotateX(-Math.PI / 2), e())),
+      (this.guideSector = new Mesh(new BufferGeometry(), e())),
+      (this.guideCircle = new Mesh(new CircleGeometry(1, 48).rotateX(-Math.PI / 2), e())),
+      (this.guideRing = new Mesh(new RingGeometry(0.93, 1, 48).rotateX(-Math.PI / 2), e())),
       (this.guideRing.material.opacity = 0.7),
       this.guideCircle.add(this.guideRing));
     for (let e of [this.guideRect, this.guideSector, this.guideCircle])
@@ -426,7 +429,7 @@ var Game = class {
       let n = e[t];
       n.kind === `spread` &&
         (this.sectorGeos[t] && this.sectorGeos[t].dispose(),
-        (this.sectorGeos[t] = new mr(
+        (this.sectorGeos[t] = new CircleGeometry(
           1,
           28,
           -n.spread / 2 - 0.07,
@@ -465,7 +468,7 @@ var Game = class {
         this.guideRect.material.color.set(c),
         (this.guideRect.material.opacity = l));
     } else {
-      let t = $c(i, e.kind === `leap` ? 2 : 0.5, e.range);
+      let t = clamp(i, e.kind === `leap` ? 2 : 0.5, e.range);
       (this.guideCircle.position.set(t, 0, 0),
         this.guideCircle.scale.setScalar(e.blast),
         (this.guideCircle.visible = !0),
@@ -558,7 +561,7 @@ var Game = class {
       a = 1 / 0;
     for (let o of this.brawlers) {
       if (o === t || !o.alive || o.hidden || o.airborne) continue;
-      let s = sl(t.x, t.z, o.x, o.z);
+      let s = distance(t.x, t.z, o.x, o.z);
       if (s > n || s >= a) continue;
       let c =
         e.kind === `lob`
@@ -571,7 +574,7 @@ var Game = class {
     if (a === 1 / 0)
       for (let e of this.combat.boxes) {
         if (!e.alive) continue;
-        let o = sl(t.x, t.z, e.x, e.z);
+        let o = distance(t.x, t.z, e.x, e.z);
         o > n || o >= a || ((a = o), (r = e.x), (i = e.z));
       }
     if (a === 1 / 0) {
@@ -622,7 +625,7 @@ var Game = class {
           r.alive &&
           r.inBush &&
           r.revealT <= 0 &&
-          (i = sl(e.x, e.z, r.x, r.z) > 2.4),
+          (i = distance(e.x, e.z, r.x, r.z) > 2.4),
         (r.hidden = i),
         r.alive && (r.root.visible = !i),
         n < 8)
@@ -641,17 +644,17 @@ var Game = class {
       (this.state === `menu`
         ? this.lighting.setTime(this.lighting.time + e * 0.4)
         : this.lighting.setTime(
-            el(
+            lerp(
               GAME_CONFIG.startHour,
               GAME_CONFIG.endHour,
-              $c(this.matchTime / GAME_CONFIG.dayLength, 0, 1)
+              clamp(this.matchTime / GAME_CONFIG.dayLength, 0, 1)
             )
           ));
   }
   updateCamera(e) {
     let t = this.camera,
       n = t.aspect,
-      r = $c(1.55 / n, 1, 1.75);
+      r = clamp(1.55 / n, 1, 1.75);
     if (this.state === `menu`) {
       this.menuAngle += e * 0.05;
       let n = 27 * r;
@@ -675,18 +678,18 @@ var Game = class {
         n = i.z;
       (i === this.player &&
         this.state === `playing` &&
-        ((this.leanX = nl(this.leanX, $c(ad.x - i.x, -8, 8) * 0.09, 2.2, e)),
-        (this.leanZ = nl(this.leanZ, $c(ad.z - i.z, -8, 8) * 0.09, 2.2, e)),
+        ((this.leanX = damp(this.leanX, clamp(ad.x - i.x, -8, 8) * 0.09, 2.2, e)),
+        (this.leanZ = damp(this.leanZ, clamp(ad.z - i.z, -8, 8) * 0.09, 2.2, e)),
         (t += this.leanX),
         (n += this.leanZ)),
-        (t = $c(t, -14, 14)),
-        (n = $c(n, -15, 17)),
-        (this.focus.x = nl(this.focus.x, t, 5.5, e)),
-        (this.focus.z = nl(this.focus.z, n, 5.5, e)));
+        (t = clamp(t, -14, 14)),
+        (n = clamp(n, -15, 17)),
+        (this.focus.x = damp(this.focus.x, t, 5.5, e)),
+        (this.focus.z = damp(this.focus.z, n, 5.5, e)));
     }
-    let a = this.state === `countdown` ? tl(0.4, 3.2, this.countdownT) : 0,
+    let a = this.state === `countdown` ? smoothstep(0.4, 3.2, this.countdownT) : 0,
       o = $u * r * this.camZoom * (1 + a * 0.75);
-    this.shakeAmp = nl(this.shakeAmp, 0, 9, e);
+    this.shakeAmp = damp(this.shakeAmp, 0, 9, e);
     let s = this.shakeAmp,
       c = this.elapsed,
       l = Math.sin(c * 43) * s * 0.3,
@@ -854,10 +857,10 @@ var Game = class {
       this.adaptQuality(t),
       (this.frameRequest = requestAnimationFrame(this.frame)));
   }
-};
+}
 function startGame(e = {}) {
   const game = new Game(e);
   window.__game = game;
   return game;
 }
-export { Game, cd, startGame };
+export { Game, shuffleInPlace, startGame };
