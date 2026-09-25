@@ -57,7 +57,6 @@ import {
   r,
   s,
   distance,
-  t,
   smoothstep,
   u,
   Group,
@@ -829,192 +828,195 @@ class Combat {
       this.cubeLight = new Color(4259722);
       this.orange = new Color(16747066);
     }
-    addBox(e, t) {
-      let n = this.game.world,
-        r = new MeshStandardMaterial({
+    addBox(tileX, tileZ) {
+      const world = this.game.world;
+      const material = new MeshStandardMaterial({
           map: this.boxTex.map,
           emissiveMap: this.boxTex.emissiveMap,
           emissive: 16777215,
           emissiveIntensity: 1.4,
           roughness: 0.7,
-        }),
-        i = new Mesh(this.boxGeo, r);
-      (i.position.set(n.center(e), 0.46, n.center(t)),
-        (i.castShadow = !0),
-        (i.receiveShadow = !0),
-        this.game.scene.add(i),
-        n.setBlocker(e, t, !0));
-      let a = {
-        tx: e,
-        ty: t,
-        x: i.position.x,
-        z: i.position.z,
+        });
+      const mesh = new Mesh(this.boxGeo, material);
+      mesh.position.set(world.center(tileX), 0.46, world.center(tileZ));
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      this.game.scene.add(mesh);
+      world.setBlocker(tileX, tileZ, true);
+      const box = {
+        tx: tileX,
+        ty: tileZ,
+        x: mesh.position.x,
+        z: mesh.position.z,
         hp: GAME_CONFIG.boxHp,
         maxHp: GAME_CONFIG.boxHp,
-        mesh: i,
-        mat: r,
+        mesh,
+        mat: material,
         shake: 0,
         alive: !0,
         isBox: !0,
       };
-      return (this.boxes.push(a), a);
+      this.boxes.push(box);
+      return box;
     }
-    boxAt(e, t) {
-      for (let n of this.boxes)
-        if (n.alive && n.tx === e && n.ty === t) return n;
+    boxAt(tileX, tileZ) {
+      for (const box of this.boxes) {
+        if (box.alive && box.tx === tileX && box.ty === tileZ) return box;
+      }
       return null;
     }
-    damageBox(e, t, n) {
-      e.alive &&
-        ((e.hp -= t),
-        (e.shake = 1),
-        this.game.hud.floatText(e.x, 1.2, e.z, `${Math.round(t)}`, `dmg`),
-        n && (n.lastCombat = this.game.elapsed),
-        e.hp <= 0 &&
-          ((e.alive = !1),
-          this.game.scene.remove(e.mesh),
-          e.mat.dispose(),
-          this.game.world.setBlocker(e.tx, e.ty, !1),
-          this.game.effects.debris(e.x, 0.5, e.z, 6968470, 9),
-          this.game.effects.burst(e.x, 0.6, e.z, this.cubeLight, 16, 4.5),
-          this.game.effects.flash(e.x, 0.8, e.z, this.cubeLight, 9, 6, 0.3),
-          this.game.audio.play(`crate`, e.x, e.z),
-          this.spawnCube(e.x, e.z, e.x, e.z)));
+    damageBox(box, damage, attacker) {
+      if (!box.alive) return;
+      box.hp -= damage;
+      box.shake = 1;
+      this.game.hud.floatText(box.x, 1.2, box.z, `${Math.round(damage)}`, `dmg`);
+      if (attacker) attacker.lastCombat = this.game.elapsed;
+      if (box.hp > 0) return;
+      box.alive = false;
+      this.game.scene.remove(box.mesh);
+      box.mat.dispose();
+      this.game.world.setBlocker(box.tx, box.ty, false);
+      this.game.effects.debris(box.x, 0.5, box.z, 6968470, 9);
+      this.game.effects.burst(box.x, 0.6, box.z, this.cubeLight, 16, 4.5);
+      this.game.effects.flash(box.x, 0.8, box.z, this.cubeLight, 9, 6, 0.3);
+      this.game.audio.play(`crate`, box.x, box.z);
+      this.spawnCube(box.x, box.z, box.x, box.z);
     }
-    spawnCube(e, t, n, r) {
-      let i = new Mesh(this.cubeGeo, this.cubeMat);
-      ((i.castShadow = !0),
-        i.position.set(e, 0.5, t),
-        this.game.scene.add(i),
-        this.cubes.push({
-          mesh: i,
-          sx: e,
-          sz: t,
-          x: n,
-          z: r,
+    spawnCube(startX, startZ, targetX, targetZ) {
+      const mesh = new Mesh(this.cubeGeo, this.cubeMat);
+      mesh.castShadow = true;
+      mesh.position.set(startX, 0.5, startZ);
+      this.game.scene.add(mesh);
+      this.cubes.push({
+          mesh,
+          sx: startX,
+          sz: startZ,
+          x: targetX,
+          z: targetZ,
           t: 0,
           alive: !0,
           phase: Math.random() * 6,
-        }));
+        });
     }
-    dropCubes(e, t, n) {
-      let r = this.game.world;
-      for (let i = 0; i < n; i++) {
-        let a = (i / n) * Math.PI * 2 + Math.random(),
-          o = n === 1 ? 0 : 0.7 + Math.random() * 0.5,
-          s = r.nearestOpen(e + Math.cos(a) * o, t + Math.sin(a) * o);
-        this.spawnCube(e, t, s.x, s.z);
+    dropCubes(originX, originZ, count) {
+      const world = this.game.world;
+      for (let index = 0; index < count; index++) {
+        const angle = (index / count) * Math.PI * 2 + Math.random();
+        const distance = count === 1 ? 0 : 0.7 + Math.random() * 0.5;
+        const target = world.nearestOpen(originX + Math.cos(angle) * distance, originZ + Math.sin(angle) * distance);
+        this.spawnCube(originX, originZ, target.x, target.z);
       }
     }
-    spawnBullet(e, t, n, r, i, a, o, s) {
+    spawnBullet(owner, x, z, directionX, directionZ, ability, isSuper, speed) {
       if (this.bullets.length >= bu) return;
-      let c = e.bulletColor(o).clone();
+      const color = owner.bulletColor(isSuper).clone();
       this.bullets.push({
-        owner: e,
-        x: t,
-        z: n,
-        dx: r,
-        dz: i,
-        a,
-        isSuper: o,
-        speed: s,
+        owner,
+        x,
+        z,
+        dx: directionX,
+        dz: directionZ,
+        a: ability,
+        isSuper,
+        speed,
         travel: 0,
-        range: a.range,
-        radius: a.radius,
-        damage: a.damage * e.damageMul,
-        color: c,
+        range: ability.range,
+        radius: ability.radius,
+        damage: ability.damage * owner.damageMul,
+        color,
         alive: !0,
         trail: 0,
-        melee: a.kind === `melee`,
+        melee: ability.kind === `melee`,
       });
     }
-    spawnBomb(e, t, n, r, i, a, o, s) {
-      let c = this.bombPool.find((e) => !e.busy);
-      if (!c) return;
-      ((c.busy = !0),
-        (c.group.visible = !0),
-        c.group.position.set(t, n, r),
-        c.group.scale.setScalar(o.big ? 1.75 : 1),
-        (c.ring.visible = !0),
-        c.ring.position.set(i, 0.05, a),
-        c.ring.scale.setScalar(o.blast));
-      let l = s ? 16761402 : 16728112;
-      (c.ring.material.color.set(l),
-        c.fillDisc.material.color.set(l),
-        this.bombs.push({
-          owner: e,
-          slot: c,
-          sx: t,
-          sy: n,
-          sz: r,
-          tx: i,
-          tz: a,
-          a: o,
-          isSuper: s,
-          t: 0,
-          fuse: o.fuse,
-          landed: !1,
-          damage: o.damage * e.damageMul,
-          color: e.bulletColor(s).clone(),
-        }));
+    spawnBomb(owner, startX, startY, startZ, targetX, targetZ, ability, isSuper) {
+      const bombSlot = this.bombPool.find((slot) => !slot.busy);
+      if (!bombSlot) return;
+      bombSlot.busy = true;
+      bombSlot.group.visible = true;
+      bombSlot.group.position.set(startX, startY, startZ);
+      bombSlot.group.scale.setScalar(ability.big ? 1.75 : 1);
+      bombSlot.ring.visible = true;
+      bombSlot.ring.position.set(targetX, 0.05, targetZ);
+      bombSlot.ring.scale.setScalar(ability.blast);
+      const warningColor = isSuper ? 16761402 : 16728112;
+      bombSlot.ring.material.color.set(warningColor);
+      bombSlot.fillDisc.material.color.set(warningColor);
+      this.bombs.push({
+        owner,
+        slot: bombSlot,
+        sx: startX,
+        sy: startY,
+        sz: startZ,
+        tx: targetX,
+        tz: targetZ,
+        a: ability,
+        isSuper,
+        t: 0,
+        fuse: ability.fuse,
+        landed: false,
+        damage: ability.damage * owner.damageMul,
+        color: owner.bulletColor(isSuper).clone(),
+      });
     }
-    breakTile(e, t) {
-      let n = this.game,
-        r = n.world.destroyTile(e, t);
-      r &&
-        (r.type === TileType.BUSH
-          ? n.effects.leaves(r.x, r.z, 14)
-          : (n.effects.debris(
-              r.x,
+    breakTile(tileX, tileZ) {
+      const game = this.game;
+      const destroyedTile = game.world.destroyTile(tileX, tileZ);
+      if (!destroyedTile) return;
+      if (destroyedTile.type === TileType.BUSH) {
+        game.effects.leaves(destroyedTile.x, destroyedTile.z, 14);
+        return;
+      }
+      game.effects.debris(
+              destroyedTile.x,
               0.6,
-              r.z,
-              [12166540, 11565628, 10116910, 5216842][r.style] ?? 12166540,
+              destroyedTile.z,
+              [12166540, 11565628, 10116910, 5216842][destroyedTile.style] ?? 12166540,
               10,
-            ),
-            n.effects.dust(r.x, r.z, 8, 2.2),
-            n.audio.play(`crate`, r.x, r.z)));
+            );
+      game.effects.dust(destroyedTile.x, destroyedTile.z, 8, 2.2);
+      game.audio.play(`crate`, destroyedTile.x, destroyedTile.z);
     }
-    explode(e, t, n, r, i, a = !1) {
-      let o = this.game,
-        s = o.world,
-        c = n.blast,
-        l = n.damage * r.damageMul;
-      for (let i of o.brawlers) {
-        if (!i.alive || i === r || i.airborne) continue;
-        let a = Math.hypot(i.x - e, i.z - t);
-        if (!(a > c + 0.24) && (i.takeDamage(l, r), n.knockback)) {
-          let r = n.knockback * (1 - (a / (c + 0.5)) * 0.5),
-            o = a > 0.01 ? (i.x - e) / a : 1,
-            s = a > 0.01 ? (i.z - t) / a : 0;
-          i.knock.set(o * r, s * r);
+    explode(centerX, centerZ, ability, owner, isSlam, isSuper = false) {
+      const game = this.game;
+      const world = game.world;
+      const blastRadius = ability.blast;
+      const damage = ability.damage * owner.damageMul;
+      for (const target of game.brawlers) {
+        if (!target.alive || target === owner || target.airborne) continue;
+        const distanceToTarget = Math.hypot(target.x - centerX, target.z - centerZ);
+        if (distanceToTarget > blastRadius + 0.24) continue;
+        target.takeDamage(damage, owner);
+        if (ability.knockback) {
+          const knockbackStrength = ability.knockback * (1 - (distanceToTarget / (blastRadius + 0.5)) * 0.5);
+          const knockDirectionX = distanceToTarget > 0.01 ? (target.x - centerX) / distanceToTarget : 1;
+          const knockDirectionZ = distanceToTarget > 0.01 ? (target.z - centerZ) / distanceToTarget : 0;
+          target.knock.set(knockDirectionX * knockbackStrength, knockDirectionZ * knockbackStrength);
         }
       }
-      for (let n of this.boxes)
-        n.alive &&
-          Math.hypot(n.x - e, n.z - t) < c + 0.4 &&
-          this.damageBox(n, l, r);
-      if (n.breaksWalls) {
-        let n = Math.ceil(c),
-          r = s.toTile(e),
-          i = s.toTile(t);
-        for (let a = -n; a <= n; a++)
-          for (let o = -n; o <= n; o++) {
-            let n = s.center(r + o),
-              l = s.center(i + a);
-            Math.hypot(n - e, l - t) < c - 0.25 && this.breakTile(r + o, i + a);
-          }
+      for (const box of this.boxes) {
+        if (box.alive && Math.hypot(box.x - centerX, box.z - centerZ) < blastRadius + 0.4) {
+          this.damageBox(box, damage, owner);
+        }
       }
-      (a
-        ? o.effects.slam(e, t, c, r.superColor)
-        : o.effects.explosion(
-            e,
-            t,
-            c,
-            n.big ? r.superColor : this.orange,
-            !!n.big,
-          ),
-        o.shake(n.big || a ? 0.55 : 0.24, e, t),
-        o.audio.play(n.big || a ? `boomBig` : `boom`, e, t));
+      if (ability.breaksWalls) {
+        const tileRadius = Math.ceil(blastRadius);
+        const centerTileX = world.toTile(centerX);
+        const centerTileZ = world.toTile(centerZ);
+        for (let offsetZ = -tileRadius; offsetZ <= tileRadius; offsetZ++) {
+          for (let offsetX = -tileRadius; offsetX <= tileRadius; offsetX++) {
+            const tileCenterX = world.center(centerTileX + offsetX);
+            const tileCenterZ = world.center(centerTileZ + offsetZ);
+            if (Math.hypot(tileCenterX - centerX, tileCenterZ - centerZ) < blastRadius - 0.25) {
+              this.breakTile(centerTileX + offsetX, centerTileZ + offsetZ);
+            }
+          }
+        }
+      }
+      if (isSlam) game.effects.slam(centerX, centerZ, blastRadius, owner.superColor);
+      else game.effects.explosion(centerX, centerZ, blastRadius, ability.big ? owner.superColor : this.orange, Boolean(ability.big));
+      game.shake(ability.big || isSlam ? 0.55 : 0.24, centerX, centerZ);
+      game.audio.play(ability.big || isSlam ? `boomBig` : `boom`, centerX, centerZ);
     }
     update(e) {
       let t = this.game,
@@ -1304,50 +1306,50 @@ class ParticlePool {
     }
   };
 function createSmokeTexture() {
-  let e = createCanvas(128, 128),
-    t = e.getContext(`2d`),
-    n = t.createRadialGradient(64, 64, 4, 64, 64, 62);
-  (n.addColorStop(0, `rgba(10,6,4,0.85)`),
-    n.addColorStop(0.45, `rgba(14,9,6,0.6)`),
-    n.addColorStop(0.8, `rgba(20,12,8,0.18)`),
-    n.addColorStop(1, `rgba(20,12,8,0)`),
-    (t.fillStyle = n),
-    t.fillRect(0, 0, 128, 128));
-  for (let e = 0; e < 26; e++) {
-    let e = Math.random() * 6.28,
-      n = 20 + Math.random() * 38;
-    ((t.fillStyle = `rgba(8,5,3,0.35)`),
-      t.beginPath(),
-      t.arc(
-        64 + Math.cos(e) * n,
-        64 + Math.sin(e) * n,
+  const canvas = createCanvas(128, 128);
+  const context = canvas.getContext(`2d`);
+  const gradient = context.createRadialGradient(64, 64, 4, 64, 64, 62);
+  gradient.addColorStop(0, `rgba(10,6,4,0.85)`);
+  gradient.addColorStop(0.45, `rgba(14,9,6,0.6)`);
+  gradient.addColorStop(0.8, `rgba(20,12,8,0.18)`);
+  gradient.addColorStop(1, `rgba(20,12,8,0)`);
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 128, 128);
+  for (let speckIndex = 0; speckIndex < 26; speckIndex++) {
+    const angle = Math.random() * 6.28;
+    const distanceFromCenter = 20 + Math.random() * 38;
+    context.fillStyle = `rgba(8,5,3,0.35)`;
+    context.beginPath();
+    context.arc(
+        64 + Math.cos(angle) * distanceFromCenter,
+        64 + Math.sin(angle) * distanceFromCenter,
         2 + Math.random() * 5,
         0,
         7,
-      ),
-      t.fill());
+      );
+    context.fill();
   }
-  return new CanvasTexture(e);
+  return new CanvasTexture(canvas);
 }
 class Effects {
-    constructor(e) {
-      this.game = e;
-      let t = e.scene;
-      ((this.glow = new ParticlePool(t, 1800, !0)),
-        (this.smoke = new ParticlePool(t, 900, !1)),
-        (this.flashes = []),
-        (this.debrisCap = 140),
-        (this.debrisMesh = new InstancedMesh(
+    constructor(game) {
+      this.game = game;
+      const scene = game.scene;
+      this.glow = new ParticlePool(scene, 1800, true);
+      this.smoke = new ParticlePool(scene, 900, false);
+      this.flashes = [];
+      this.debrisCap = 140;
+      this.debrisMesh = new InstancedMesh(
           new BoxGeometry(1, 1, 1),
           new MeshStandardMaterial({ color: 16777215, roughness: 0.85 }),
           this.debrisCap,
-        )),
-        (this.debrisMesh.castShadow = !0),
-        (this.debrisMesh.receiveShadow = !0),
-        (this.debrisMesh.frustumCulled = !1),
-        (this.debrisData = []));
-      for (let e = 0; e < this.debrisCap; e++)
-        (this.debrisData.push({
+        );
+      this.debrisMesh.castShadow = true;
+      this.debrisMesh.receiveShadow = true;
+      this.debrisMesh.frustumCulled = false;
+      this.debrisData = [];
+      for (let debrisIndex = 0; debrisIndex < this.debrisCap; debrisIndex++) {
+        this.debrisData.push({
           life: 0,
           x: 0,
           y: 0,
@@ -1362,34 +1364,38 @@ class Effects {
           wy: 0,
           wz: 0,
           s: 0.1,
-        }),
-          this.debrisMesh.setMatrixAt(e, Cu.makeScale(0, 0, 0)),
-          this.debrisMesh.setColorAt(e, Ou.set(16777215)));
-      ((this.debrisCursor = 0), t.add(this.debrisMesh), (this.decals = []));
-      let n = createSmokeTexture(),
-        r = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-      for (let e = 0; e < 18; e++) {
-        let e = new Mesh(
-          r,
+        });
+        this.debrisMesh.setMatrixAt(debrisIndex, Cu.makeScale(0, 0, 0));
+        this.debrisMesh.setColorAt(debrisIndex, Ou.set(16777215));
+      }
+      this.debrisCursor = 0;
+      scene.add(this.debrisMesh);
+      this.decals = [];
+      const smokeTexture = createSmokeTexture();
+      const decalGeometry = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+      for (let decalIndex = 0; decalIndex < 18; decalIndex++) {
+        const decalMesh = new Mesh(
+          decalGeometry,
           new MeshBasicMaterial({
-            map: n,
+            map: smokeTexture,
             transparent: !0,
             opacity: 0,
             depthWrite: !1,
             color: 0,
           }),
         );
-        ((e.visible = !1),
-          (e.renderOrder = 1),
-          (e.userData.noAO = !0),
-          t.add(e),
-          this.decals.push({ mesh: e, life: 0 }));
+        decalMesh.visible = false;
+        decalMesh.renderOrder = 1;
+        decalMesh.userData.noAO = true;
+        scene.add(decalMesh);
+        this.decals.push({ mesh: decalMesh, life: 0 });
       }
-      ((this.decalCursor = 0), (this.rings = []));
-      let i = new RingGeometry(0.82, 1, 64).rotateX(-Math.PI / 2);
-      for (let e = 0; e < 10; e++) {
-        let e = new Mesh(
-          i,
+      this.decalCursor = 0;
+      this.rings = [];
+      const ringGeometry = new RingGeometry(0.82, 1, 64).rotateX(-Math.PI / 2);
+      for (let ringIndex = 0; ringIndex < 10; ringIndex++) {
+        const ringMesh = new Mesh(
+          ringGeometry,
           new MeshBasicMaterial({
             color: 16777215,
             transparent: !0,
@@ -1398,13 +1404,14 @@ class Effects {
             blending: 2,
           }),
         );
-        ((e.visible = !1),
-          (e.renderOrder = 6),
-          (e.userData.noAO = !0),
-          t.add(e),
-          this.rings.push({ mesh: e, t: 0, T: 0, r: 1 }));
+        ringMesh.visible = false;
+        ringMesh.renderOrder = 6;
+        ringMesh.userData.noAO = true;
+        scene.add(ringMesh);
+        this.rings.push({ mesh: ringMesh, t: 0, T: 0, r: 1 });
       }
-      ((this.ringCursor = 0), this.buildFireflies());
+      this.ringCursor = 0;
+      this.buildFireflies();
     }
     buildFireflies() {
       let e = this.game.world,
@@ -1481,155 +1488,155 @@ class Effects {
         T: o,
       });
     }
-    spark(e, t, n, r) {
+    spark(x, y, z, color) {
       this.glow.emit(
-        e,
-        t,
-        n,
+        x,
+        y,
+        z,
         randomRange(-1.4, 1.4),
         randomRange(0.6, 2.6),
         randomRange(-1.4, 1.4),
         randomRange(0.18, 0.4),
         0.14,
         0.02,
-        r.r * 5,
-        r.g * 5,
-        r.b * 5,
+        color.r * 5,
+        color.g * 5,
+        color.b * 5,
         1,
         2,
         7,
       );
     }
-    trail(e, t, n, r, i) {
+    trail(x, y, z, color, radius) {
       this.glow.emit(
-        e + randomRange(-0.04, 0.04),
-        t + randomRange(-0.04, 0.04),
-        n + randomRange(-0.04, 0.04),
+        x + randomRange(-0.04, 0.04),
+        y + randomRange(-0.04, 0.04),
+        z + randomRange(-0.04, 0.04),
         0,
         0,
         0,
         0.15,
-        i * 1.35,
+        radius * 1.35,
         0.02,
-        r.r * 1.15,
-        r.g * 1.15,
-        r.b * 1.15,
+        color.r * 1.15,
+        color.g * 1.15,
+        color.b * 1.15,
         0.5,
         0,
         0,
       );
     }
-    impact(e, t, n, r, i) {
-      for (let a = 0; a < i; a++) {
-        let i = Math.random() * 6.28,
-          a = randomRange(1.5, 5);
+    impact(x, y, z, color, particleCount) {
+      for (let particleIndex = 0; particleIndex < particleCount; particleIndex++) {
+        const angle = Math.random() * 6.28;
+        const speed = randomRange(1.5, 5);
         this.glow.emit(
-          e,
-          t,
-          n,
-          Math.cos(i) * a,
+          x,
+          y,
+          z,
+          Math.cos(angle) * speed,
           randomRange(0.5, 3.5),
-          Math.sin(i) * a,
+          Math.sin(angle) * speed,
           randomRange(0.15, 0.35),
           0.15,
           0.02,
-          r.r * 3.2,
-          r.g * 3.2,
-          r.b * 3.2,
+          color.r * 3.2,
+          color.g * 3.2,
+          color.b * 3.2,
           1,
           3,
           9,
         );
       }
       this.glow.emit(
-        e,
-        t,
-        n,
+        x,
+        y,
+        z,
         0,
         0,
         0,
         0.1,
         0.7,
         0.2,
-        r.r * 1.6,
-        r.g * 1.6,
-        r.b * 1.6,
+        color.r * 1.6,
+        color.g * 1.6,
+        color.b * 1.6,
         0.8,
         0,
         0,
       );
     }
-    burst(e, t, n, r, i, a) {
-      for (let o = 0; o < i; o++) {
-        let i = Math.random() * 6.28,
-          o = randomRange(0.4, 1) * a;
+    burst(x, y, z, color, particleCount, spread) {
+      for (let particleIndex = 0; particleIndex < particleCount; particleIndex++) {
+        const angle = Math.random() * 6.28;
+        const speed = randomRange(0.4, 1) * spread;
         this.glow.emit(
-          e,
-          t,
-          n,
-          Math.cos(i) * o,
+          x,
+          y,
+          z,
+          Math.cos(angle) * speed,
           randomRange(1, 4.5),
-          Math.sin(i) * o,
+          Math.sin(angle) * speed,
           randomRange(0.35, 0.7),
           0.2,
           0.03,
-          r.r * 4,
-          r.g * 4,
-          r.b * 4,
+          color.r * 4,
+          color.g * 4,
+          color.b * 4,
           1,
           2.2,
           8,
         );
       }
     }
-    muzzle(e, t, n, r, i, a, o) {
-      (this.flash(e + r * 0.2, t + 0.1, n + i * 0.2, a, 6.5 * o, 5.5, 0.09),
+    muzzle(x, y, z, directionX, directionZ, color, scale) {
+      (this.flash(x + directionX * 0.2, y + 0.1, z + directionZ * 0.2, color, 6.5 * scale, 5.5, 0.09),
         this.glow.emit(
-          e + r * 0.1,
-          t,
-          n + i * 0.1,
-          r * 1.5,
+          x + directionX * 0.1,
+          y,
+          z + directionZ * 0.1,
+          directionX * 1.5,
           0,
-          i * 1.5,
+          directionZ * 1.5,
           0.07,
-          0.95 * o,
+          0.95 * scale,
           0.3,
-          a.r * 3,
-          a.g * 3,
-          a.b * 3,
+          color.r * 3,
+          color.g * 3,
+          color.b * 3,
           1,
           0,
           0,
         ));
-      for (let o = 0; o < 5; o++) {
-        let o = 0.5,
-          s = r * randomRange(4, 9) + randomRange(-0.5, o) * 3,
-          c = i * randomRange(4, 9) + randomRange(-0.5, o) * 3;
+      for (let flashParticleIndex = 0; flashParticleIndex < 5; flashParticleIndex++) {
+        const spreadLimit = 0.5;
+        const velocityX = directionX * randomRange(4, 9) + randomRange(-0.5, spreadLimit) * 3;
+        const velocityZ = directionZ * randomRange(4, 9) + randomRange(-0.5, spreadLimit) * 3;
         this.glow.emit(
-          e,
-          t,
-          n,
-          s,
+          x,
+          y,
+          z,
+          velocityX,
           randomRange(-0.5, 1.5),
-          c,
+          velocityZ,
           randomRange(0.08, 0.2),
           0.13,
           0.02,
-          a.r * 5,
-          a.g * 5,
-          a.b * 5,
+          color.r * 5,
+          color.g * 5,
+          color.b * 5,
           1,
           4,
           3,
         );
       }
       this.smoke.emit(
-        e + r * 0.15,
-        t + 0.05,
-        n + i * 0.15,
-        r * 0.9,
+        x + directionX * 0.15,
+        y + 0.05,
+        z + directionZ * 0.15,
+        directionX * 0.9,
         0.5,
-        i * 0.9,
+        directionZ * 0.9,
         0.5,
         0.25,
         0.7,
@@ -1641,17 +1648,17 @@ class Effects {
         -0.3,
       );
     }
-    dust(e, t, n, r) {
-      for (let i = 0; i < n; i++) {
-        let n = Math.random() * 6.28,
-          i = randomRange(0.4, 1) * r;
+    dust(x, z, particleCount, spread) {
+      for (let particleIndex = 0; particleIndex < particleCount; particleIndex++) {
+        const angle = Math.random() * 6.28;
+        const speed = randomRange(0.4, 1) * spread;
         this.smoke.emit(
-          e + Math.cos(n) * 0.2,
+          x + Math.cos(angle) * 0.2,
           0.12,
-          t + Math.sin(n) * 0.2,
-          Math.cos(n) * i,
+          z + Math.sin(angle) * 0.2,
+          Math.cos(angle) * speed,
           randomRange(0.2, 0.9),
-          Math.sin(n) * i,
+          Math.sin(angle) * speed,
           randomRange(0.5, 0.95),
           0.35,
           1.1,
@@ -1664,11 +1671,11 @@ class Effects {
         );
       }
     }
-    footDust(e, t) {
+    footDust(x, z) {
       this.smoke.emit(
-        e + randomRange(-0.1, 0.1),
+        x + randomRange(-0.1, 0.1),
         0.06,
-        t + randomRange(-0.1, 0.1),
+        z + randomRange(-0.1, 0.1),
         randomRange(-0.2, 0.2),
         0.35,
         randomRange(-0.2, 0.2),
@@ -1683,16 +1690,16 @@ class Effects {
         -0.1,
       );
     }
-    leaves(e, t, n) {
-      for (let r = 0; r < n; r++) {
-        let n = Math.random() * 6.28;
+    leaves(x, z, particleCount) {
+      for (let particleIndex = 0; particleIndex < particleCount; particleIndex++) {
+        const angle = Math.random() * 6.28;
         this.smoke.emit(
-          e + randomRange(-0.3, 0.3),
+          x + randomRange(-0.3, 0.3),
           randomRange(0.3, 0.9),
-          t + randomRange(-0.3, 0.3),
-          Math.cos(n) * randomRange(0.6, 2.2),
+          z + randomRange(-0.3, 0.3),
+          Math.cos(angle) * randomRange(0.6, 2.2),
           randomRange(1.2, 3),
-          Math.sin(n) * randomRange(0.6, 2.2),
+          Math.sin(angle) * randomRange(0.6, 2.2),
           randomRange(0.5, 0.9),
           0.17,
           0.1,
@@ -1705,12 +1712,12 @@ class Effects {
         );
       }
     }
-    healPuff(e, t) {
-      for (let n = 0; n < 5; n++)
+    healPuff(x, z) {
+      for (let particleIndex = 0; particleIndex < 5; particleIndex++)
         this.glow.emit(
-          e + randomRange(-0.4, 0.4),
+          x + randomRange(-0.4, 0.4),
           randomRange(0.4, 1.2),
-          t + randomRange(-0.4, 0.4),
+          z + randomRange(-0.4, 0.4),
           0,
           randomRange(0.8, 1.6),
           0,
@@ -1725,234 +1732,156 @@ class Effects {
           0,
         );
     }
-    debris(e, t, n, r, i) {
-      for (let a = 0; a < i; a++) {
-        let i = this.debrisCursor;
-        this.debrisCursor = (i + 1) % this.debrisCap;
-        let a = this.debrisData[i],
-          o = Math.random() * 6.28,
-          s = randomRange(1.2, 4.2);
-        ((a.life = randomRange(1.6, 2.6)),
-          (a.x = e + randomRange(-0.3, 0.3)),
-          (a.y = t + randomRange(-0.2, 0.4)),
-          (a.z = n + randomRange(-0.3, 0.3)),
-          (a.vx = Math.cos(o) * s),
-          (a.vy = randomRange(3, 7)),
-          (a.vz = Math.sin(o) * s),
-          (a.rx = randomRange(0, 6)),
-          (a.ry = randomRange(0, 6)),
-          (a.rz = randomRange(0, 6)),
-          (a.wx = randomRange(-9, 9)),
-          (a.wy = randomRange(-9, 9)),
-          (a.wz = randomRange(-9, 9)),
-          (a.s = randomRange(0.12, 0.27)),
-          Ou.set(r).offsetHSL(0, 0, randomRange(-0.06, 0.06)),
-          this.debrisMesh.setColorAt(i, Ou));
+    debris(x, y, z, color, pieceCount) {
+      for (let pieceIndex = 0; pieceIndex < pieceCount; pieceIndex++) {
+        const debrisIndex = this.debrisCursor;
+        this.debrisCursor = (debrisIndex + 1) % this.debrisCap;
+        const piece = this.debrisData[debrisIndex];
+        const angle = Math.random() * 6.28;
+        const speed = randomRange(1.2, 4.2);
+        piece.life = randomRange(1.6, 2.6);
+        piece.x = x + randomRange(-0.3, 0.3);
+        piece.y = y + randomRange(-0.2, 0.4);
+        piece.z = z + randomRange(-0.3, 0.3);
+        piece.vx = Math.cos(angle) * speed;
+        piece.vy = randomRange(3, 7);
+        piece.vz = Math.sin(angle) * speed;
+        piece.rx = randomRange(0, 6);
+        piece.ry = randomRange(0, 6);
+        piece.rz = randomRange(0, 6);
+        piece.wx = randomRange(-9, 9);
+        piece.wy = randomRange(-9, 9);
+        piece.wz = randomRange(-9, 9);
+        piece.s = randomRange(0.12, 0.27);
+        Ou.set(color).offsetHSL(0, 0, randomRange(-0.06, 0.06));
+        this.debrisMesh.setColorAt(debrisIndex, Ou);
       }
       this.debrisMesh.instanceColor.needsUpdate = !0;
     }
-    ring(e, t, n, r, i = 0.4, a = 3) {
-      let o = this.rings[this.ringCursor];
-      ((this.ringCursor = (this.ringCursor + 1) % this.rings.length),
-        (o.t = 0),
-        (o.T = i),
-        (o.r = n),
-        (o.mesh.visible = !0),
-        o.mesh.position.set(e, 0.09, t),
-        o.mesh.material.color.copy(r).multiplyScalar(a));
+    ring(x, z, radius, color, duration = 0.4, brightness = 3) {
+      const ring = this.rings[this.ringCursor];
+      this.ringCursor = (this.ringCursor + 1) % this.rings.length;
+      ring.t = 0;
+      ring.T = duration;
+      ring.r = radius;
+      ring.mesh.visible = true;
+      ring.mesh.position.set(x, 0.09, z);
+      ring.mesh.material.color.copy(color).multiplyScalar(brightness);
     }
-    decal(e, t, n) {
-      let r = this.decals[this.decalCursor];
-      ((this.decalCursor = (this.decalCursor + 1) % this.decals.length),
-        (r.life = 14),
-        (r.mesh.visible = !0),
-        r.mesh.position.set(e, 0.022 + this.decalCursor * 8e-4, t),
-        (r.mesh.rotation.y = Math.random() * 6.28),
-        r.mesh.scale.setScalar(n * 1.9));
+    decal(x, z, radius) {
+      const decal = this.decals[this.decalCursor];
+      this.decalCursor = (this.decalCursor + 1) % this.decals.length;
+      decal.life = 14;
+      decal.mesh.visible = true;
+      decal.mesh.position.set(x, 0.022 + this.decalCursor * 8e-4, z);
+      decal.mesh.rotation.y = Math.random() * 6.28;
+      decal.mesh.scale.setScalar(radius * 1.9);
     }
-    explosion(e, t, n, r, i) {
-      let a = i ? 46 : 24;
-      (this.flash(e, 1.1, t, r, i ? 95 : 48, i ? 15 : 10, i ? 0.5 : 0.34),
-        this.ring(e, t, n * 1.15, r, i ? 0.5 : 0.36),
-        this.decal(e, t, n * 0.85),
-        this.glow.emit(
-          e,
-          0.6,
-          t,
-          0,
-          0.5,
-          0,
-          0.22,
-          n * 3.2,
-          n * 0.8,
-          r.r * 6,
-          r.g * 5,
-          r.b * 4,
-          1,
-          0,
-          0,
-        ));
-      for (let r = 0; r < a; r++) {
-        let r = Math.random() * 6.28,
-          i = randomRange(0.3, 1) * n * 4.2,
-          a = Math.random();
-        this.glow.emit(
-          e,
-          0.4,
-          t,
-          Math.cos(r) * i,
-          randomRange(1, 6),
-          Math.sin(r) * i,
-          randomRange(0.3, 0.75),
-          randomRange(0.25, 0.6),
-          0.04,
-          (1 + a) * 3.2,
-          (0.4 + a * 0.6) * 3,
-          0.75,
-          1,
-          2.6,
-          6,
-        );
+    explosion(x, z, radius, color, isLarge) {
+      const glowParticleCount = isLarge ? 46 : 24;
+      this.flash(x, 1.1, z, color, isLarge ? 95 : 48, isLarge ? 15 : 10, isLarge ? 0.5 : 0.34);
+      this.ring(x, z, radius * 1.15, color, isLarge ? 0.5 : 0.36);
+      this.decal(x, z, radius * 0.85);
+      this.glow.emit(x, 0.6, z, 0, 0.5, 0, 0.22, radius * 3.2, radius * 0.8, color.r * 6, color.g * 5, color.b * 4, 1, 0, 0);
+      for (let particleIndex = 0; particleIndex < glowParticleCount; particleIndex++) {
+        const angle = Math.random() * 6.28;
+        const speed = randomRange(0.3, 1) * radius * 4.2;
+        const colorVariation = Math.random();
+        this.glow.emit(x, 0.4, z, Math.cos(angle) * speed, randomRange(1, 6), Math.sin(angle) * speed, randomRange(0.3, 0.75), randomRange(0.25, 0.6), 0.04, (1 + colorVariation) * 3.2, (0.4 + colorVariation * 0.6) * 3, 0.75, 1, 2.6, 6);
       }
-      for (let r = 0; r < (i ? 16 : 9); r++) {
-        let r = Math.random() * 6.28,
-          i = randomRange(0.2, 1) * n * 1.6;
-        this.smoke.emit(
-          e + Math.cos(r) * 0.3,
-          randomRange(0.3, 0.9),
-          t + Math.sin(r) * 0.3,
-          Math.cos(r) * i,
-          randomRange(0.8, 2.6),
-          Math.sin(r) * i,
-          randomRange(0.9, 1.7),
-          n * 0.7,
-          n * 1.9,
-          0.22,
-          0.2,
-          0.2,
-          0.55,
-          1.6,
-          -0.5,
-        );
+      const smokeParticleCount = isLarge ? 16 : 9;
+      for (let particleIndex = 0; particleIndex < smokeParticleCount; particleIndex++) {
+        const angle = Math.random() * 6.28;
+        const speed = randomRange(0.2, 1) * radius * 1.6;
+        this.smoke.emit(x + Math.cos(angle) * 0.3, randomRange(0.3, 0.9), z + Math.sin(angle) * 0.3, Math.cos(angle) * speed, randomRange(0.8, 2.6), Math.sin(angle) * speed, randomRange(0.9, 1.7), radius * 0.7, radius * 1.9, 0.22, 0.2, 0.2, 0.55, 1.6, -0.5);
       }
-      this.dust(e, t, i ? 14 : 8, n * 2.2);
+      this.dust(x, z, isLarge ? 14 : 8, radius * 2.2);
     }
-    slam(e, t, n, r) {
-      (this.flash(e, 0.9, t, r, 40, 10, 0.32),
-        this.ring(e, t, n * 1.2, r, 0.42, 2.4),
-        this.decal(e, t, n * 0.6),
-        this.dust(e, t, 22, n * 3.2));
-      for (let n = 0; n < 18; n++) {
-        let n = Math.random() * 6.28,
-          i = randomRange(2, 7);
-        this.glow.emit(
-          e,
-          0.2,
-          t,
-          Math.cos(n) * i,
-          randomRange(1, 4),
-          Math.sin(n) * i,
-          randomRange(0.25, 0.5),
-          0.2,
-          0.03,
-          r.r * 4,
-          r.g * 4,
-          r.b * 4,
-          1,
-          2.5,
-          8,
-        );
+    slam(x, z, radius, color) {
+      this.flash(x, 0.9, z, color, 40, 10, 0.32);
+      this.ring(x, z, radius * 1.2, color, 0.42, 2.4);
+      this.decal(x, z, radius * 0.6);
+      this.dust(x, z, 22, radius * 3.2);
+      for (let particleIndex = 0; particleIndex < 18; particleIndex++) {
+        const angle = Math.random() * 6.28;
+        const speed = randomRange(2, 7);
+        this.glow.emit(x, 0.2, z, Math.cos(angle) * speed, randomRange(1, 4), Math.sin(angle) * speed, randomRange(0.25, 0.5), 0.2, 0.03, color.r * 4, color.g * 4, color.b * 4, 1, 2.5, 8);
       }
     }
-    defeat(e, t, n) {
-      (this.flash(e, 1, t, n, 26, 8, 0.4),
-        this.ring(e, t, 1.6, n, 0.45, 2.2),
-        this.burst(e, 0.8, t, n, 26, 5));
-      for (let n = 0; n < 8; n++)
-        this.smoke.emit(
-          e + randomRange(-0.3, 0.3),
-          randomRange(0.3, 1.2),
-          t + randomRange(-0.3, 0.3),
-          randomRange(-0.6, 0.6),
-          randomRange(0.8, 2),
-          randomRange(-0.6, 0.6),
-          randomRange(0.7, 1.2),
-          0.5,
-          1.4,
-          0.85,
-          0.85,
-          0.9,
-          0.5,
-          1.4,
-          -0.3,
-        );
+    defeat(x, z, color) {
+      this.flash(x, 1, z, color, 26, 8, 0.4);
+      this.ring(x, z, 1.6, color, 0.45, 2.2);
+      this.burst(x, 0.8, z, color, 26, 5);
+      for (let particleIndex = 0; particleIndex < 8; particleIndex++) {
+        this.smoke.emit(x + randomRange(-0.3, 0.3), randomRange(0.3, 1.2), z + randomRange(-0.3, 0.3), randomRange(-0.6, 0.6), randomRange(0.8, 2), randomRange(-0.6, 0.6), randomRange(0.7, 1.2), 0.5, 1.4, 0.85, 0.85, 0.9, 0.5, 1.4, -0.3);
+      }
     }
-    update(e) {
-      let t = this.game,
-        n = t.lighting,
-        r =
-          t.pipeline.renderer.getDrawingBufferSize(new Vector2()).y /
-          (2 * Math.tan((t.camera.fov * Math.PI) / 360));
+    update(deltaTime) {
+      const game = this.game;
+      const lighting = game.lighting;
+      const renderScale = game.pipeline.renderer.getDrawingBufferSize(new Vector2()).y / (2 * Math.tan((game.camera.fov * Math.PI) / 360));
       const glowUniforms = this.glow.material?.uniforms;
       const smokeUniforms = this.smoke.material?.uniforms;
       const fireflyUniforms = this.fireflyMat?.uniforms;
-      if (glowUniforms?.uScale) glowUniforms.uScale.value = r;
-      if (smokeUniforms?.uScale) smokeUniforms.uScale.value = r;
-      if (smokeUniforms?.uDim) smokeUniforms.uDim.value = n.ambientLevel;
-      if (fireflyUniforms?.uScale) fireflyUniforms.uScale.value = r;
-      if (fireflyUniforms?.uTime) fireflyUniforms.uTime.value = t.elapsed;
-      if (fireflyUniforms?.uNight) fireflyUniforms.uNight.value = n.night;
-      this.fireflies.visible = n.night > 0.01;
-      this.glow.update(e);
-      this.smoke.update(e);
-      for (let t of this.flashes) {
-        t.t += e;
-        let r = 1 - clamp(t.t / t.T, 0, 1);
-        n.addLight(t.x, t.y, t.z, t.color, t.intensity * r * r, t.distance);
+      if (glowUniforms?.uScale) glowUniforms.uScale.value = renderScale;
+      if (smokeUniforms?.uScale) smokeUniforms.uScale.value = renderScale;
+      if (smokeUniforms?.uDim) smokeUniforms.uDim.value = lighting.ambientLevel;
+      if (fireflyUniforms?.uScale) fireflyUniforms.uScale.value = renderScale;
+      if (fireflyUniforms?.uTime) fireflyUniforms.uTime.value = game.elapsed;
+      if (fireflyUniforms?.uNight) fireflyUniforms.uNight.value = lighting.night;
+      this.fireflies.visible = lighting.night > 0.01;
+      this.glow.update(deltaTime);
+      this.smoke.update(deltaTime);
+      for (const flash of this.flashes) {
+        flash.t += deltaTime;
+        const remainingIntensity = 1 - clamp(flash.t / flash.T, 0, 1);
+        lighting.addLight(flash.x, flash.y, flash.z, flash.color, flash.intensity * remainingIntensity * remainingIntensity, flash.distance);
       }
-      this.flashes = this.flashes.filter((e) => e.t < e.T);
-      let i = !1;
-      for (let t = 0; t < this.debrisCap; t++) {
-        let n = this.debrisData[t];
-        if (n.life <= 0) continue;
-        ((i = !0),
-          (n.life -= e),
-          (n.vy -= 19 * e),
-          (n.x += n.vx * e),
-          (n.y += n.vy * e),
-          (n.z += n.vz * e));
-        let r = n.s * 0.5;
-        (n.y < r &&
-          ((n.y = r),
-          (n.vy *= -0.38),
-          (n.vx *= 0.6),
-          (n.vz *= 0.6),
-          (n.wx *= 0.5),
-          (n.wy *= 0.5),
-          (n.wz *= 0.5)),
-          (n.rx += n.wx * e),
-          (n.ry += n.wy * e),
-          (n.rz += n.wz * e));
-        let a = n.life <= 0 ? 0 : n.s * clamp(n.life / 0.4, 0, 1);
-        (Du.set(n.rx, n.ry, n.rz),
-          wu.setFromEuler(Du),
-          Cu.compose(Tu.set(n.x, n.y, n.z), wu, Eu.set(a, a, a)),
-          this.debrisMesh.setMatrixAt(t, Cu));
+      this.flashes = this.flashes.filter((flash) => flash.t < flash.T);
+      let hasActiveDebris = false;
+      for (let debrisIndex = 0; debrisIndex < this.debrisCap; debrisIndex++) {
+        const debris = this.debrisData[debrisIndex];
+        if (debris.life <= 0) continue;
+        hasActiveDebris = true;
+        debris.life -= deltaTime;
+        debris.vy -= 19 * deltaTime;
+        debris.x += debris.vx * deltaTime;
+        debris.y += debris.vy * deltaTime;
+        debris.z += debris.vz * deltaTime;
+        const halfSize = debris.s * 0.5;
+        if (debris.y < halfSize) {
+          debris.y = halfSize;
+          debris.vy *= -0.38;
+          debris.vx *= 0.6;
+          debris.vz *= 0.6;
+          debris.wx *= 0.5;
+          debris.wy *= 0.5;
+          debris.wz *= 0.5;
+        }
+        debris.rx += debris.wx * deltaTime;
+        debris.ry += debris.wy * deltaTime;
+        debris.rz += debris.wz * deltaTime;
+        const debrisScale = debris.life <= 0 ? 0 : debris.s * clamp(debris.life / 0.4, 0, 1);
+        Du.set(debris.rx, debris.ry, debris.rz);
+        wu.setFromEuler(Du);
+        Cu.compose(Tu.set(debris.x, debris.y, debris.z), wu, Eu.set(debrisScale, debrisScale, debrisScale));
+        this.debrisMesh.setMatrixAt(debrisIndex, Cu);
       }
-      i && (this.debrisMesh.instanceMatrix.needsUpdate = !0);
-      for (let t of this.decals)
-        t.life <= 0 ||
-          ((t.life -= e),
-          (t.mesh.material.opacity = clamp(t.life / 4, 0, 1) * 0.55),
-          t.life <= 0 && (t.mesh.visible = !1));
-      for (let t of this.rings) {
-        if (!t.mesh.visible) continue;
-        t.t += e;
-        let n = clamp(t.t / t.T, 0, 1),
-          r = 1 - (1 - n) * (1 - n);
-        (t.mesh.scale.setScalar(0.2 + r * t.r),
-          (t.mesh.material.opacity = (1 - n) * 0.9),
-          n >= 1 && (t.mesh.visible = !1));
+      if (hasActiveDebris) this.debrisMesh.instanceMatrix.needsUpdate = true;
+      for (const decal of this.decals) {
+        if (decal.life <= 0) continue;
+        decal.life -= deltaTime;
+        decal.mesh.material.opacity = clamp(decal.life / 4, 0, 1) * 0.55;
+        if (decal.life <= 0) decal.mesh.visible = false;
+      }
+      for (const ring of this.rings) {
+        if (!ring.mesh.visible) continue;
+        ring.t += deltaTime;
+        const progress = clamp(ring.t / ring.T, 0, 1);
+        const easedProgress = 1 - (1 - progress) * (1 - progress);
+        ring.mesh.scale.setScalar(0.2 + easedProgress * ring.r);
+        ring.mesh.material.opacity = (1 - progress) * 0.9;
+        if (progress >= 1) ring.mesh.visible = false;
       }
     }
   }
@@ -2042,50 +1971,51 @@ class GasRing {
         this.reset());
     }
     reset() {
-      ((this.half = GAME_CONFIG.gasStartHalf),
-        (this.tickT = 0),
-        (this.ticks = 0),
-        (this.active = !1));
-      for (let e of this.layers) e.visible = !1;
+      this.half = GAME_CONFIG.gasStartHalf;
+      this.tickT = 0;
+      this.ticks = 0;
+      this.active = false;
+      for (const layer of this.layers) layer.visible = false;
     }
-    depthAt(e, t) {
-      let n = Math.abs(e) - (this.half - this.round),
-        r = Math.abs(t) - (this.half - this.round);
+    depthAt(worldX, worldZ) {
+      const horizontalDistance = Math.abs(worldX) - (this.half - this.round);
+      const verticalDistance = Math.abs(worldZ) - (this.half - this.round);
       return (
-        Math.hypot(Math.max(n, 0), Math.max(r, 0)) +
-        Math.min(Math.max(n, r), 0) -
+        Math.hypot(Math.max(horizontalDistance, 0), Math.max(verticalDistance, 0)) +
+        Math.min(Math.max(horizontalDistance, verticalDistance), 0) -
         this.round
       );
     }
-    update(e, t) {
-      let n = this.game,
-        r = clamp((t - GAME_CONFIG.gasDelay) / GAME_CONFIG.gasDuration, 0, 1);
-      ((this.active = t > GAME_CONFIG.gasDelay - 6),
-        (this.half = lerp(GAME_CONFIG.gasStartHalf, GAME_CONFIG.gasEndHalf, r)),
-        (this.round = lerp(5, 2.2, r)));
-      let i = smoothstep(GAME_CONFIG.gasDelay - 6, GAME_CONFIG.gasDelay, t);
-      if (
-        (this.layers.forEach((e, t) => {
-          e.visible = this.active;
-          const uniforms = e.material?.uniforms;
+    update(deltaTime, matchTime) {
+      const game = this.game;
+      const progress = clamp((matchTime - GAME_CONFIG.gasDelay) / GAME_CONFIG.gasDuration, 0, 1);
+      this.active = matchTime > GAME_CONFIG.gasDelay - 6;
+      this.half = lerp(GAME_CONFIG.gasStartHalf, GAME_CONFIG.gasEndHalf, progress);
+      this.round = lerp(5, 2.2, progress);
+      const warningProgress = smoothstep(GAME_CONFIG.gasDelay - 6, GAME_CONFIG.gasDelay, matchTime);
+      this.layers.forEach((layer, layerIndex) => {
+          layer.visible = this.active;
+          const uniforms = layer.material?.uniforms;
           if (!uniforms) return;
-          if (uniforms.uTime) uniforms.uTime.value = n.elapsed;
+          if (uniforms.uTime) uniforms.uTime.value = game.elapsed;
           if (uniforms.uHalf) uniforms.uHalf.value = this.half;
           if (uniforms.uRound) uniforms.uRound.value = this.round;
-          let a = clamp((n.lighting.ambientLevel - 0.36) / 0.64, 0, 1);
-          if (uniforms.uAmbient) uniforms.uAmbient.value = lerp(0.2, 1, a);
-          if (uniforms.uGlow) uniforms.uGlow.value = (0.55 + n.lighting.night * 0.3) * i;
-          if (uniforms.uAlpha) uniforms.uAlpha.value = Iu[t] * i;
-        }),
-        !(t < GAME_CONFIG.gasDelay) && ((this.tickT += e), this.tickT >= 1))
-      ) {
-        (--this.tickT, this.ticks++);
-        let e = 600 + Math.min(this.ticks, 60) * 25;
-        for (let t of n.brawlers)
-          t.alive &&
-            !t.airborne &&
-            this.depthAt(t.x, t.z) > 0.35 &&
-            (t.takeDamage(e, null, !0), t.isPlayer && n.audio.play(`gas`));
+          const ambientProgress = clamp((game.lighting.ambientLevel - 0.36) / 0.64, 0, 1);
+          if (uniforms.uAmbient) uniforms.uAmbient.value = lerp(0.2, 1, ambientProgress);
+          if (uniforms.uGlow) uniforms.uGlow.value = (0.55 + game.lighting.night * 0.3) * warningProgress;
+          if (uniforms.uAlpha) uniforms.uAlpha.value = Iu[layerIndex] * warningProgress;
+      });
+      if (matchTime < GAME_CONFIG.gasDelay) return;
+      this.tickT += deltaTime;
+      if (this.tickT < 1) return;
+      this.tickT -= 1;
+      this.ticks++;
+      const gasDamage = 600 + Math.min(this.ticks, 60) * 25;
+      for (const brawler of game.brawlers) {
+        if (brawler.alive && !brawler.airborne && this.depthAt(brawler.x, brawler.z) > 0.35) {
+          brawler.takeDamage(gasDamage, null, true);
+          if (brawler.isPlayer) game.audio.play(`gas`);
+        }
       }
     }
   }
@@ -2093,42 +2023,40 @@ const Ru = 9,
   zu = 4.5,
   Bu = 2.4;
 class Bot {
-    constructor(e, t) {
-      ((this.game = e),
-        (this.b = t),
-        (this.thinkT = randomRange(0, 0.35)),
-        (this.state = `loot`),
-        (this.target = null),
-        (this.box = null),
-        (this.goal = null),
-        (this.path = null),
-        (this.pathI = 0),
-        (this.repathT = 0),
-        (this.strafeDir = Math.random() < 0.5 ? 1 : -1),
-        (this.strafeT = randomRange(0.6, 1.6)),
-        (this.reactT = 0),
-        (this.shootT = randomRange(0.4, 1)),
-        (this.stuckT = 0),
-        (this.lastX = t.x),
-        (this.lastZ = t.z),
-        (this.jitterT = 0),
-        (this.jx = 0),
-        (this.jz = 0),
-        (this.wanderT = 0));
-      let [n, r] = e.difficulty.skill;
-      ((this.skill = randomRange(n, r)), (this.thrower = t.def.attack.kind === `lob`));
+    constructor(game, brawler) {
+      this.game = game;
+      this.b = brawler;
+      this.thinkT = randomRange(0, 0.35);
+      this.state = `loot`;
+      this.target = null;
+      this.box = null;
+      this.goal = null;
+      this.path = null;
+      this.pathI = 0;
+      this.repathT = 0;
+      this.strafeDir = Math.random() < 0.5 ? 1 : -1;
+      this.strafeT = randomRange(0.6, 1.6);
+      this.reactT = 0;
+      this.shootT = randomRange(0.4, 1);
+      this.stuckT = 0;
+      this.lastX = brawler.x;
+      this.lastZ = brawler.z;
+      this.jitterT = 0;
+      this.jx = 0;
+      this.jz = 0;
+      this.wanderT = 0;
+      const [minimumSkill, maximumSkill] = game.difficulty.skill;
+      this.skill = randomRange(minimumSkill, maximumSkill);
+      this.thrower = brawler.def.attack.kind === `lob`;
     }
-    canSee(e, t) {
-      return t > Ru || (e.inBush && t > Bu && e.revealT <= 0)
-        ? !1
-        : this.thrower && t < 8
-          ? !0
-          : t < 2.5 ||
-            this.game.world.hasLineOfSight(this.b.x, this.b.z, e.x, e.z);
+    canSee(target, distanceToTarget) {
+      if (distanceToTarget > Ru || (target.inBush && distanceToTarget > Bu && target.revealT <= 0)) return false;
+      if (this.thrower && distanceToTarget < 8) return true;
+      return distanceToTarget < 2.5 || this.game.world.hasLineOfSight(this.b.x, this.b.z, target.x, target.z);
     }
-    seesBox(e) {
-      let t = this.game.world.raycast(this.b.x, this.b.z, e.x, e.z);
-      return !t || (t.tx === e.tx && t.ty === e.ty);
+    seesBox(box) {
+      const hit = this.game.world.raycast(this.b.x, this.b.z, box.x, box.z);
+      return !hit || (hit.tx === box.tx && hit.ty === box.ty);
     }
     think() {
       let { b: e, game: t } = this,
@@ -2229,57 +2157,53 @@ class Bot {
             this.planTo(c)
           : ((this.goal = null), (this.path = null)));
     }
-    planTo(e) {
-      let { b: t, game: n } = this,
-        r = n.world,
-        i = n.gas;
-      ((this.goal = e), (this.repathT = 1.3));
-      let a = i.active
-        ? (e, t) => (i.depthAt(r.center(e), r.center(t)) > -0.5 ? 6 : 0)
+    planTo(goal) {
+      const brawler = this.b;
+      const world = this.game.world;
+      const gas = this.game.gas;
+      this.goal = goal;
+      this.repathT = 1.3;
+      const gasPenalty = gas.active
+        ? (tileX, tileZ) => (gas.depthAt(world.center(tileX), world.center(tileZ)) > -0.5 ? 6 : 0)
         : null;
-      ((this.path = r.findPath(
-        r.toTile(t.x),
-        r.toTile(t.z),
-        r.toTile(e.x),
-        r.toTile(e.z),
-        a,
-      )),
-        (this.pathI = 0),
-        !this.path &&
-          this.box &&
-          ((this.box.skipBy = t.id), (this.box = null)));
+      this.path = world.findPath(world.toTile(brawler.x), world.toTile(brawler.z), world.toTile(goal.x), world.toTile(goal.z), gasPenalty);
+      this.pathI = 0;
+      if (!this.path && this.box) {
+        this.box.skipBy = brawler.id;
+        this.box = null;
+      }
     }
     followPath() {
-      let { b: e, game: t } = this;
+      const brawler = this.b;
       if (!this.path || this.pathI >= this.path.length) return [0, 0];
-      let n = t.world,
-        [r, i] = this.path[this.pathI],
-        a = n.center(r),
-        o = n.center(i);
-      if (distance(e.x, e.z, a, o) < 0.36) {
+      const world = this.game.world;
+      let [tileX, tileZ] = this.path[this.pathI];
+      let targetX = world.center(tileX);
+      let targetZ = world.center(tileZ);
+      if (distance(brawler.x, brawler.z, targetX, targetZ) < 0.36) {
         if ((this.pathI++, this.pathI >= this.path.length)) return [0, 0];
-        (([r, i] = this.path[this.pathI]),
-          (a = n.center(r)),
-          (o = n.center(i)));
+        [tileX, tileZ] = this.path[this.pathI];
+        targetX = world.center(tileX);
+        targetZ = world.center(tileZ);
       }
-      let s = distance(e.x, e.z, a, o) || 1;
-      return [(a - e.x) / s, (o - e.z) / s];
+      const distanceToWaypoint = distance(brawler.x, brawler.z, targetX, targetZ) || 1;
+      return [(targetX - brawler.x) / distanceToWaypoint, (targetZ - brawler.z) / distanceToWaypoint];
     }
-    aimAt(e, t, n, r, i) {
-      let { b: a } = this,
-        o = distance(a.x, a.z, e, t),
-        s = i.kind === `lob` ? i.flight + i.fuse * 0.7 : o / (i.speed || 14),
-        c = 0.8 * this.skill,
-        l = e + n * s * c,
-        u = t + r * s * c,
-        d = (Math.random() - 0.5) * 2 * (0.05 + (1 - this.skill) * 0.3),
-        f = Math.atan2(l - a.x, u - a.z) + d,
-        p = distance(a.x, a.z, l, u);
+    aimAt(targetX, targetZ, targetVelocityX, targetVelocityZ, ability) {
+      const brawler = this.b;
+      const distanceToTarget = distance(brawler.x, brawler.z, targetX, targetZ);
+      const leadTime = ability.kind === `lob` ? ability.flight + ability.fuse * 0.7 : distanceToTarget / (ability.speed || 14);
+      const predictionScale = 0.8 * this.skill;
+      const predictedX = targetX + targetVelocityX * leadTime * predictionScale;
+      const predictedZ = targetZ + targetVelocityZ * leadTime * predictionScale;
+      const aimJitter = (Math.random() - 0.5) * 2 * (0.05 + (1 - this.skill) * 0.3);
+      const aimAngle = Math.atan2(predictedX - brawler.x, predictedZ - brawler.z) + aimJitter;
+      const aimDistance = distance(brawler.x, brawler.z, predictedX, predictedZ);
       return {
-        dx: Math.sin(f),
-        dz: Math.cos(f),
-        x: a.x + Math.sin(f) * p,
-        z: a.z + Math.cos(f) * p,
+        dx: Math.sin(aimAngle),
+        dz: Math.cos(aimAngle),
+        x: brawler.x + Math.sin(aimAngle) * aimDistance,
+        z: brawler.z + Math.cos(aimAngle) * aimDistance,
       };
     }
     update(e) {
@@ -2408,6 +2332,7 @@ class Input {
         (this.listeners = new AbortController()),
         (this.ndcX = 0),
         (this.ndcY = 0),
+        (this.canvas = e),
         (this.fire = !1),
         (this.superHeld = !1),
         (this.superReleased = !1),
@@ -2447,12 +2372,15 @@ class Input {
             (this.ndcY = -(e.clientY / window.innerHeight) * 2 + 1));
         };
       (window.addEventListener(`mousemove`, (e) => {
-        r() || i(e);
+        if (this.canvas.ownerDocument.pointerLockElement === this.canvas) {
+          this.ndcX += (e.movementX * 2) / window.innerWidth;
+          this.ndcY -= (e.movementY * 2) / window.innerHeight;
+        } else r() || i(e);
       }, { signal: this.listeners.signal }),
         e.addEventListener(`mousedown`, (e) => {
           r() ||
             (this.touchMode && this.setTouchMode(!1),
-            i(e),
+            this.canvas.ownerDocument.pointerLockElement !== this.canvas && i(e),
             e.button === 0 && (this.fire = !0),
             e.button === 2 && (this.superHeld = !0));
         }, { signal: this.listeners.signal }),
@@ -2533,6 +2461,16 @@ class Input {
     dispose() {
       this.listeners.abort();
       this.onTouchMode = null;
+      if (this.canvas.ownerDocument.pointerLockElement === this.canvas) {
+        this.canvas.ownerDocument.exitPointerLock();
+      }
+    }
+    lockPointer() {
+      if (this.touchMode || !this.canvas.requestPointerLock) return;
+      this.ndcX = 0;
+      this.ndcY = 0;
+      const request = this.canvas.requestPointerLock();
+      request?.catch?.(() => {});
     }
     resetStick(e) {
       ((e.id = null), (e.x = e.y = e.mag = 0), (e.moved = !1));
@@ -2681,161 +2619,153 @@ class HUD {
         ),
         $(`to-menu`).addEventListener(`click`, () => this.game.toMenu()));
     }
-    select(e) {
-      ((this.selected = e),
-        document.querySelectorAll(`#cards .card`).forEach((t) => {
-          let n = t.dataset.id === e;
-          (t.classList.toggle(`on`, n),
-            t.setAttribute(`aria-pressed`, String(n)));
-        }));
+    select(brawlerId) {
+      this.selected = brawlerId;
+      document.querySelectorAll(`#cards .card`).forEach((card) => {
+        const isSelected = card.dataset.id === brawlerId;
+        card.classList.toggle(`on`, isSelected);
+        card.setAttribute(`aria-pressed`, String(isSelected));
+      });
     }
-    showMenu(e) {
-      ($(`menu`).classList.toggle(`open`, e),
-        e && $(`result`).classList.remove(`open`),
-        this.root.classList.toggle(`hidden`, e));
+    showMenu(isVisible) {
+      $(`menu`).classList.toggle(`open`, isVisible);
+      if (isVisible) $(`result`).classList.remove(`open`);
+      this.root.classList.toggle(`hidden`, isVisible);
     }
-    showResult(e, t, n, r, i) {
-      let a = $(`result-title`);
-      ((a.textContent = e ? `VICTORY!` : t <= 3 ? `SO CLOSE!` : `DEFEATED`),
-        a.classList.toggle(`lose`, !e),
-        ($(`result-rank`).textContent = `RANK #${t} of ${n}`),
-        ($(`result-stats`).textContent =
-          `${r} takedown${r === 1 ? `` : `s`}  ·  ${i} power cube${i === 1 ? `` : `s`}`),
-        $(`result`).classList.add(`open`));
+    showResult(won, rank, totalBrawlers, kills, cubes) {
+      const resultTitle = $(`result-title`);
+      resultTitle.textContent = won ? `VICTORY!` : rank <= 3 ? `SO CLOSE!` : `DEFEATED`;
+      resultTitle.classList.toggle(`lose`, !won);
+      $(`result-rank`).textContent = `RANK #${rank} of ${totalBrawlers}`;
+      $(`result-stats`).textContent = `${kills} takedown${kills === 1 ? `` : `s`}  ·  ${cubes} power cube${cubes === 1 ? `` : `s`}`;
+      $(`result`).classList.add(`open`);
     }
     hideResult() {
       $(`result`).classList.remove(`open`);
     }
     buildSettings() {
-      let e = this.game,
-        t = $(`settings`);
-      $(`gear`).addEventListener(`click`, () => t.classList.toggle(`open`));
-      let n = $(`quality-seg`);
-      for (let [t, r] of Object.entries(QUALITY_PRESETS)) {
-        let i = document.createElement(`button`);
-        ((i.textContent = r.label),
-          (i.dataset.q = t),
-          i.addEventListener(`click`, () => e.setQuality(t, !0)),
-          n.appendChild(i));
+      const game = this.game;
+      const settingsPanel = $(`settings`);
+      $(`gear`).addEventListener(`click`, () => settingsPanel.classList.toggle(`open`));
+      const qualitySegment = $(`quality-seg`);
+      for (const [qualityId, qualityPreset] of Object.entries(QUALITY_PRESETS)) {
+        const qualityButton = document.createElement(`button`);
+        qualityButton.textContent = qualityPreset.label;
+        qualityButton.dataset.q = qualityId;
+        qualityButton.addEventListener(`click`, () => game.setQuality(qualityId, true));
+        qualitySegment.appendChild(qualityButton);
       }
-      let r = $(`difficulty-seg`);
-      for (let [t, n] of Object.entries(DIFFICULTIES)) {
-        let i = document.createElement(`button`);
-        ((i.textContent = n.label),
-          (i.dataset.d = t),
-          i.addEventListener(`click`, () => e.setDifficulty(t)),
-          r.appendChild(i));
+      const difficultySegment = $(`difficulty-seg`);
+      for (const [difficultyId, difficulty] of Object.entries(DIFFICULTIES)) {
+        const difficultyButton = document.createElement(`button`);
+        difficultyButton.textContent = difficulty.label;
+        difficultyButton.dataset.d = difficultyId;
+        difficultyButton.addEventListener(`click`, () => game.setDifficulty(difficultyId));
+        difficultySegment.appendChild(difficultyButton);
       }
-      ($(`auto-time`).addEventListener(`change`, (t) =>
-        e.setAutoTime(t.target.checked),
-      ),
-        $(`time-slider`).addEventListener(`input`, (t) => {
-          (e.setAutoTime(!1), e.lighting.setTime(parseFloat(t.target.value)));
-        }),
-        $(`tog-ao`).addEventListener(`change`, (t) =>
-          e.setToggle(`ao`, t.target.checked),
-        ),
-        $(`tog-bloom`).addEventListener(`change`, (t) =>
-          e.setToggle(`bloom`, t.target.checked),
-        ),
-        $(`tog-mute`).addEventListener(`change`, (t) =>
-          e.setMuted(t.target.checked),
-        ));
+      $(`auto-time`).addEventListener(`change`, (event) => game.setAutoTime(event.target.checked));
+      $(`time-slider`).addEventListener(`input`, (event) => {
+        game.setAutoTime(false);
+        game.lighting.setTime(Number.parseFloat(event.target.value));
+      });
+      $(`tog-ao`).addEventListener(`change`, (event) => game.setToggle(`ao`, event.target.checked));
+      $(`tog-bloom`).addEventListener(`change`, (event) => game.setToggle(`bloom`, event.target.checked));
+      $(`tog-mute`).addEventListener(`change`, (event) => game.setMuted(event.target.checked));
     }
     syncSettings() {
-      let e = this.game;
-      (document
-        .querySelectorAll(`#quality-seg button`)
-        .forEach((t) =>
-          t.classList.toggle(`on`, t.dataset.q === e.pipeline.qualityName),
-        ),
-        document
-          .querySelectorAll(`#difficulty-seg button`)
-          .forEach((t) =>
-            t.classList.toggle(`on`, t.dataset.d === e.difficultyName),
-          ),
-        ($(`auto-time`).checked = e.autoTime),
-        ($(`tog-ao`).checked = e.pipeline.toggles.ao),
-        ($(`tog-ao`).disabled = !e.pipeline.quality.ao),
-        ($(`tog-bloom`).checked = e.pipeline.toggles.bloom),
-        ($(`tog-mute`).checked = e.audio.muted));
+      const game = this.game;
+      document.querySelectorAll(`#quality-seg button`).forEach((button) => {
+        button.classList.toggle(`on`, button.dataset.q === game.pipeline.qualityName);
+      });
+      document.querySelectorAll(`#difficulty-seg button`).forEach((button) => {
+        button.classList.toggle(`on`, button.dataset.d === game.difficultyName);
+      });
+      $(`auto-time`).checked = game.autoTime;
+      $(`tog-ao`).checked = game.pipeline.toggles.ao;
+      $(`tog-ao`).disabled = !game.pipeline.quality.ao;
+      $(`tog-bloom`).checked = game.pipeline.toggles.bloom;
+      $(`tog-mute`).checked = game.audio.muted;
     }
-    toast(e) {
-      let t = $(`toast`);
-      ((t.textContent = e),
-        t.classList.add(`show`),
-        clearTimeout(this.toastTimer),
-        (this.toastTimer = setTimeout(() => t.classList.remove(`show`), 3200)));
+    toast(message) {
+      const toastElement = $(`toast`);
+      toastElement.textContent = message;
+      toastElement.classList.add(`show`);
+      clearTimeout(this.toastTimer);
+      this.toastTimer = setTimeout(() => toastElement.classList.remove(`show`), 3200);
     }
     reset() {
-      for (let e of this.overheads.values()) e.root.remove();
+      for (const overhead of this.overheads.values()) overhead.root.remove();
       this.overheads.clear();
-      for (let e of this.boxBars.values()) e.root.remove();
+      for (const boxBar of this.boxBars.values()) boxBar.root.remove();
       this.boxBars.clear();
-      for (let e of this.floaters) ((e.life = 0), (e.lerp.hidden = !0));
-      (($(`feed`).innerHTML = ``), (this.lastLeft = -1), this.hideResult());
+      for (const floater of this.floaters) {
+        floater.life = 0;
+        floater.lerp.hidden = true;
+      }
+      $(`feed`).innerHTML = ``;
+      this.lastLeft = -1;
+      this.hideResult();
     }
-    addBrawler(e) {
-      let t = document.createElement(`div`);
-      ((t.className = `oh` + (e.isPlayer ? ` me` : ``)),
-        (t.innerHTML = `<div class="oh-name"><span class="n"></span><span class="oh-cubes"></span></div>
+    addBrawler(brawler) {
+      const overhead = document.createElement(`div`);
+      overhead.className = `oh` + (brawler.isPlayer ? ` me` : ``);
+      overhead.innerHTML = `<div class="oh-name"><span class="n"></span><span class="oh-cubes"></span></div>
       <div class="oh-bar"><div class="oh-fill"></div><span class="oh-hp"></span></div>
-      ${e.isPlayer ? `<div class="oh-ammo"><i><b></b></i><i><b></b></i><i><b></b></i></div>` : ``}`),
-        (t.querySelector(`.n`).textContent = e.name),
-        this.overheadLayer.appendChild(t),
-        this.overheads.set(e.id, {
-          root: t,
-          fill: t.querySelector(`.oh-fill`),
-          hp: t.querySelector(`.oh-hp`),
-          cubes: t.querySelector(`.oh-cubes`),
-          ammo: [...t.querySelectorAll(`.oh-ammo b`)],
+      ${brawler.isPlayer ? `<div class="oh-ammo"><i><b></b></i><i><b></b></i><i><b></b></i></div>` : ``}`;
+      overhead.querySelector(`.n`).textContent = brawler.name;
+      this.overheadLayer.appendChild(overhead);
+      this.overheads.set(brawler.id, {
+          root: overhead,
+          fill: overhead.querySelector(`.oh-fill`),
+          hp: overhead.querySelector(`.oh-hp`),
+          cubes: overhead.querySelector(`.oh-cubes`),
+          ammo: [...overhead.querySelectorAll(`.oh-ammo b`)],
           lastHp: -1,
           lastMax: -1,
           lastCubes: -1,
           lastAmmo: [-1, -1, -1],
           shown: !0,
-        }));
+        });
     }
-    floatText(e, t, n, r, i) {
-      let a = this.floaters[this.floaterCursor];
-      ((this.floaterCursor = (this.floaterCursor + 1) % this.floaters.length),
-        (a.life = 0.85),
-        (a.x = e + (Math.random() - 0.5) * 0.5),
-        (a.y = t),
-        (a.z = n),
-        (a.drift = (Math.random() - 0.5) * 30),
-        (a.lerp.textContent = r),
-        (a.lerp.className = `floater ` + i),
-        (a.lerp.hidden = !1));
+    floatText(worldX, worldY, worldZ, text, style) {
+      const floater = this.floaters[this.floaterCursor];
+      this.floaterCursor = (this.floaterCursor + 1) % this.floaters.length;
+      floater.life = 0.85;
+      floater.x = worldX + (Math.random() - 0.5) * 0.5;
+      floater.y = worldY;
+      floater.z = worldZ;
+      floater.drift = (Math.random() - 0.5) * 30;
+      floater.lerp.textContent = text;
+      floater.lerp.className = `floater ${style}`;
+      floater.lerp.hidden = false;
     }
-    feed(e) {
-      let t = $(`feed`),
-        n = document.createElement(`div`);
-      for (n.innerHTML = e, t.appendChild(n); t.children.length > 4;)
-        t.firstChild.remove();
-      setTimeout(() => n.remove(), 6e3);
+    feed(messageHtml) {
+      const feedElement = $(`feed`);
+      const feedItem = document.createElement(`div`);
+      feedItem.innerHTML = messageHtml;
+      feedElement.appendChild(feedItem);
+      while (feedElement.children.length > 4) feedElement.firstChild.remove();
+      setTimeout(() => feedItem.remove(), 6e3);
     }
-    banner(e, t = 1, n = !1) {
-      let r = $(`banner`);
-      ((r.textContent = e),
-        r.classList.toggle(`small`, n),
-        r.classList.add(`show`),
-        (this.bannerT = t));
+    banner(message, duration = 1, isSmall = false) {
+      const bannerElement = $(`banner`);
+      bannerElement.textContent = message;
+      bannerElement.classList.toggle(`small`, isSmall);
+      bannerElement.classList.add(`show`);
+      this.bannerT = duration;
     }
-    flashHurt(e) {
-      this.hurt = clamp(this.hurt + e / 1400, 0.35, 1);
+    flashHurt(damage) {
+      this.hurt = clamp(this.hurt + damage / 1400, 0.35, 1);
     }
-    project(e, t, n, r) {
-      return (
-        projectedPosition.set(e, t, n).project(this.game.camera),
-        (r.x = (projectedPosition.x * 0.5 + 0.5) * window.innerWidth),
-        (r.y = (-projectedPosition.y * 0.5 + 0.5) * window.innerHeight),
-        (r.on =
+    project(worldX, worldY, worldZ, projectedPoint) {
+      projectedPosition.set(worldX, worldY, worldZ).project(this.game.camera);
+      projectedPoint.x = (projectedPosition.x * 0.5 + 0.5) * window.innerWidth;
+      projectedPoint.y = (-projectedPosition.y * 0.5 + 0.5) * window.innerHeight;
+      projectedPoint.on =
           projectedPosition.z < 1 &&
           Math.abs(projectedPosition.x) < 1.15 &&
-          Math.abs(projectedPosition.y) < 1.2),
-        r
-      );
+          Math.abs(projectedPosition.y) < 1.2;
+      return projectedPoint;
     }
     update(e) {
       let t = this.game,
@@ -2971,150 +2901,154 @@ class HUD {
   }
 class GameAudio {
     constructor() {
-      ((this.ctx = null),
-        (this.master = null),
-        (this.muted = !1),
-        (this.listener = { x: 0, z: 0 }),
-        (this.noiseBuffer = null),
-        (this.lastPlayed = {}),
-        (this.timeOffset = 0));
+      this.ctx = null;
+      this.master = null;
+      this.muted = false;
+      this.listener = { x: 0, z: 0 };
+      this.noiseBuffer = null;
+      this.lastPlayed = {};
+      this.timeOffset = 0;
     }
     unlock() {
       if (this.ctx) {
-        this.ctx.state === `suspended` && this.ctx.resume();
+        if (this.ctx.state === `suspended`) this.ctx.resume();
         return;
       }
-      let e = window.AudioContext || window.webkitAudioContext;
-      e && this.attach(new e());
+      const AudioContextConstructor = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextConstructor) this.attach(new AudioContextConstructor());
     }
-    attach(e) {
-      ((this.ctx = e),
-        (this.master = this.ctx.createGain()),
-        (this.master.gain.value = this.muted ? 0 : 0.34));
-      let t = this.ctx.createDynamicsCompressor();
-      (this.master.connect(t), t.connect(this.ctx.destination));
-      let n = this.ctx.sampleRate;
-      this.noiseBuffer = this.ctx.createBuffer(1, n, n);
-      let r = this.noiseBuffer.getChannelData(0);
-      for (let e = 0; e < n; e++) r[e] = Math.random() * 2 - 1;
+    attach(audioContext) {
+      this.ctx = audioContext;
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : 0.34;
+      const compressor = this.ctx.createDynamicsCompressor();
+      this.master.connect(compressor);
+      compressor.connect(this.ctx.destination);
+      const sampleCount = this.ctx.sampleRate;
+      this.noiseBuffer = this.ctx.createBuffer(1, sampleCount, sampleCount);
+      const noiseSamples = this.noiseBuffer.getChannelData(0);
+      for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+        noiseSamples[sampleIndex] = Math.random() * 2 - 1;
+      }
     }
-    setMuted(e) {
-      ((this.muted = e),
-        this.master && (this.master.gain.value = e ? 0 : 0.34));
+    setMuted(isMuted) {
+      this.muted = isMuted;
+      if (this.master) this.master.gain.value = isMuted ? 0 : 0.34;
     }
-    tone(e, t, n, r, i, a = 0) {
-      let o = this.ctx,
-        s = o.currentTime + this.timeOffset + a,
-        c = o.createOscillator(),
-        l = o.createGain();
-      ((c.type = e),
-        c.frequency.setValueAtTime(t, s),
-        c.frequency.exponentialRampToValueAtTime(Math.max(20, n), s + r),
-        l.gain.setValueAtTime(i, s),
-        l.gain.exponentialRampToValueAtTime(8e-4, s + r),
-        c.connect(l),
-        l.connect(this.master),
-        c.start(s),
-        c.stop(s + r + 0.02));
+    tone(waveform, startFrequency, endFrequency, duration, volume, delay = 0) {
+      const audioContext = this.ctx;
+      const startTime = audioContext.currentTime + this.timeOffset + delay;
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.type = waveform;
+      oscillator.frequency.setValueAtTime(startFrequency, startTime);
+      oscillator.frequency.exponentialRampToValueAtTime(Math.max(20, endFrequency), startTime + duration);
+      gain.gain.setValueAtTime(volume, startTime);
+      gain.gain.exponentialRampToValueAtTime(8e-4, startTime + duration);
+      oscillator.connect(gain);
+      gain.connect(this.master);
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration + 0.02);
     }
-    noise(e, t, n, r, i, a = 1, o = 0) {
-      let s = this.ctx,
-        c = s.currentTime + this.timeOffset + o,
-        l = s.createBufferSource();
-      ((l.buffer = this.noiseBuffer),
-        (l.playbackRate.value = 0.8 + Math.random() * 0.4));
-      let u = s.createBiquadFilter();
-      ((u.type = e),
-        (u.Q.value = a),
-        u.frequency.setValueAtTime(t, c),
-        u.frequency.exponentialRampToValueAtTime(Math.max(30, n), c + r));
-      let d = s.createGain();
-      (d.gain.setValueAtTime(i, c),
-        d.gain.exponentialRampToValueAtTime(8e-4, c + r),
-        l.connect(u),
-        u.connect(d),
-        d.connect(this.master),
-        l.start(c, Math.random() * 0.5),
-        l.stop(c + r + 0.02));
+    noise(filterType, startFrequency, endFrequency, duration, volume, quality = 1, delay = 0) {
+      const audioContext = this.ctx;
+      const startTime = audioContext.currentTime + this.timeOffset + delay;
+      const source = audioContext.createBufferSource();
+      source.buffer = this.noiseBuffer;
+      source.playbackRate.value = 0.8 + Math.random() * 0.4;
+      const filter = audioContext.createBiquadFilter();
+      filter.type = filterType;
+      filter.Q.value = quality;
+      filter.frequency.setValueAtTime(startFrequency, startTime);
+      filter.frequency.exponentialRampToValueAtTime(Math.max(30, endFrequency), startTime + duration);
+      const gain = audioContext.createGain();
+      gain.gain.setValueAtTime(volume, startTime);
+      gain.gain.exponentialRampToValueAtTime(8e-4, startTime + duration);
+      source.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.master);
+      source.start(startTime, Math.random() * 0.5);
+      source.stop(startTime + duration + 0.02);
     }
-    loudness(e, t) {
-      if (e === void 0) return 1;
-      let n = Math.hypot(e - this.listener.x, t - this.listener.z),
-        r = Math.max(0, 1 - n / 22);
-      return r * r;
+    loudness(worldX, worldZ) {
+      if (worldX === undefined) return 1;
+      const distanceToListener = Math.hypot(worldX - this.listener.x, worldZ - this.listener.z);
+      const normalizedVolume = Math.max(0, 1 - distanceToListener / 22);
+      return normalizedVolume * normalizedVolume;
     }
-    play(e, t, n) {
-      this.ctx && !this.muted && this.emit(e, this.loudness(t, n));
+    play(soundName, worldX, worldZ) {
+      if (this.ctx && !this.muted) this.emit(soundName, this.loudness(worldX, worldZ));
     }
-    emit(e, t) {
-      if (t < 0.02) return;
-      let n = this.ctx.currentTime + this.timeOffset;
-      if (!(n - (this.lastPlayed[e] ?? -1) < 0.035))
-        switch (((this.lastPlayed[e] = n), e)) {
+    emit(soundName, volume) {
+      if (volume < 0.02) return;
+      const now = this.ctx.currentTime + this.timeOffset;
+      if (now - (this.lastPlayed[soundName] ?? -1) < 0.035) return;
+      this.lastPlayed[soundName] = now;
+      switch (soundName) {
           case `shot`:
-            (this.noise(`bandpass`, 2600, 700, 0.09, 0.5 * t, 0.8),
-              this.tone(`square`, 760, 170, 0.08, 0.12 * t));
+            (this.noise(`bandpass`, 2600, 700, 0.09, 0.5 * volume, 0.8),
+              this.tone(`square`, 760, 170, 0.08, 0.12 * volume));
             break;
           case `shotBig`:
-            (this.noise(`bandpass`, 2e3, 400, 0.13, 0.6 * t, 0.7),
-              this.tone(`sawtooth`, 520, 110, 0.12, 0.16 * t));
+            (this.noise(`bandpass`, 2e3, 400, 0.13, 0.6 * volume, 0.7),
+              this.tone(`sawtooth`, 520, 110, 0.12, 0.16 * volume));
             break;
           case `blast`:
-            (this.noise(`lowpass`, 3200, 240, 0.2, 0.85 * t),
-              this.tone(`sine`, 170, 50, 0.16, 0.4 * t));
+            (this.noise(`lowpass`, 3200, 240, 0.2, 0.85 * volume),
+              this.tone(`sine`, 170, 50, 0.16, 0.4 * volume));
             break;
           case `blastBig`:
-            (this.noise(`lowpass`, 3600, 160, 0.34, 1 * t),
-              this.tone(`sine`, 150, 38, 0.3, 0.6 * t));
+            (this.noise(`lowpass`, 3600, 160, 0.34, 1 * volume),
+              this.tone(`sine`, 150, 38, 0.3, 0.6 * volume));
             break;
           case `lob`:
-            (this.tone(`sine`, 330, 120, 0.16, 0.35 * t),
-              this.noise(`bandpass`, 900, 500, 0.08, 0.2 * t));
+            (this.tone(`sine`, 330, 120, 0.16, 0.35 * volume),
+              this.noise(`bandpass`, 900, 500, 0.08, 0.2 * volume));
             break;
           case `punch`:
-            (this.noise(`lowpass`, 900, 120, 0.09, 0.7 * t),
-              this.tone(`sine`, 140, 60, 0.08, 0.35 * t));
+            (this.noise(`lowpass`, 900, 120, 0.09, 0.7 * volume),
+              this.tone(`sine`, 140, 60, 0.08, 0.35 * volume));
             break;
           case `boom`:
-            (this.noise(`lowpass`, 1800, 70, 0.5, 1 * t),
-              this.tone(`sine`, 110, 34, 0.45, 0.7 * t));
+            (this.noise(`lowpass`, 1800, 70, 0.5, 1 * volume),
+              this.tone(`sine`, 110, 34, 0.45, 0.7 * volume));
             break;
           case `boomBig`:
-            (this.noise(`lowpass`, 2400, 50, 0.85, 1.2 * t),
-              this.tone(`sine`, 95, 28, 0.8, 0.9 * t),
-              this.noise(`bandpass`, 500, 200, 0.5, 0.4 * t, 0.6, 0.05));
+            (this.noise(`lowpass`, 2400, 50, 0.85, 1.2 * volume),
+              this.tone(`sine`, 95, 28, 0.8, 0.9 * volume),
+              this.noise(`bandpass`, 500, 200, 0.5, 0.4 * volume, 0.6, 0.05));
             break;
           case `hit`:
-            this.tone(`triangle`, 720, 260, 0.06, 0.3 * t);
+            this.tone(`triangle`, 720, 260, 0.06, 0.3 * volume);
             break;
           case `crate`:
-            (this.noise(`bandpass`, 1300, 380, 0.2, 0.75 * t, 1.2),
-              this.tone(`square`, 210, 80, 0.1, 0.12 * t));
+            (this.noise(`bandpass`, 1300, 380, 0.2, 0.75 * volume, 1.2),
+              this.tone(`square`, 210, 80, 0.1, 0.12 * volume));
             break;
           case `pickup`:
-            [660, 880, 1320].forEach((e, n) =>
-              this.tone(`triangle`, e, e * 1.01, 0.13, 0.26 * t, n * 0.065),
+            [660, 880, 1320].forEach((frequency, delayIndex) =>
+              this.tone(`triangle`, frequency, frequency * 1.01, 0.13, 0.26 * volume, delayIndex * 0.065),
             );
             break;
           case `ready`:
-            [784, 1046, 1568].forEach((e, t) =>
-              this.tone(`sine`, e, e, 0.22, 0.24, t * 0.08),
+            [784, 1046, 1568].forEach((frequency, delayIndex) =>
+              this.tone(`sine`, frequency, frequency, 0.22, 0.24, delayIndex * 0.08),
             );
             break;
           case `super`:
-            (this.noise(`bandpass`, 300, 3200, 0.3, 0.5 * t, 1.5),
-              this.tone(`sawtooth`, 180, 720, 0.28, 0.13 * t));
+            (this.noise(`bandpass`, 300, 3200, 0.3, 0.5 * volume, 1.5),
+              this.tone(`sawtooth`, 180, 720, 0.28, 0.13 * volume));
             break;
           case `leap`:
-            (this.tone(`sine`, 200, 620, 0.35, 0.3 * t),
-              this.noise(`highpass`, 800, 3e3, 0.3, 0.2 * t));
+            (this.tone(`sine`, 200, 620, 0.35, 0.3 * volume),
+              this.noise(`highpass`, 800, 3e3, 0.3, 0.2 * volume));
             break;
           case `gas`:
             this.noise(`highpass`, 3e3, 1500, 0.22, 0.22);
             break;
           case `down`:
-            (this.tone(`sawtooth`, 420, 60, 0.5, 0.25 * t),
-              this.noise(`lowpass`, 1200, 100, 0.4, 0.4 * t));
+            (this.tone(`sawtooth`, 420, 60, 0.5, 0.25 * volume),
+              this.noise(`lowpass`, 1200, 100, 0.4, 0.4 * volume));
             break;
           case `count`:
             this.tone(`square`, 520, 520, 0.12, 0.2);
@@ -3124,13 +3058,13 @@ class GameAudio {
               this.tone(`sine`, 440, 660, 0.3, 0.2));
             break;
           case `win`:
-            [523, 659, 784, 1046, 1318].forEach((e, t) =>
-              this.tone(`triangle`, e, e, 0.3, 0.3, t * 0.11),
+            [523, 659, 784, 1046, 1318].forEach((frequency, delayIndex) =>
+              this.tone(`triangle`, frequency, frequency, 0.3, 0.3, delayIndex * 0.11),
             );
             break;
           case `lose`:
-            [392, 330, 262, 196].forEach((e, t) =>
-              this.tone(`sawtooth`, e, e * 0.97, 0.32, 0.18, t * 0.16),
+            [392, 330, 262, 196].forEach((frequency, delayIndex) =>
+              this.tone(`sawtooth`, frequency, frequency * 0.97, 0.32, 0.18, delayIndex * 0.16),
             );
             break;
           case `click`:

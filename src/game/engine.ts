@@ -300,6 +300,7 @@ class Game {
   }
   toMenu() {
     ((this.state = `menu`),
+      document.pointerLockElement && document.exitPointerLock(),
       this.hud.showMenu(!0),
       this.spawnRoster(null),
       (this.attractT = 0));
@@ -307,6 +308,7 @@ class Game {
   startMatch(e) {
     (this.audio.unlock(),
       this.audio.play(`click`),
+      this.input.lockPointer(),
       this.newWorld(),
       this.spawnRoster(e),
       this.hud.showMenu(!1),

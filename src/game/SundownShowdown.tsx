@@ -41,7 +41,7 @@ export function SundownShowdown() {
           to fire
           <br />
           <kbd>T</kbd> time of day &nbsp; <kbd>P</kbd> pause &nbsp; <kbd>M</kbd>{" "}
-          mute
+          mute &nbsp; <kbd>Esc</kbd> release mouse
         </div>
         <div id="sticks">
           <div className="stick" id="stick-move">
@@ -122,7 +122,12 @@ export function SundownShowdown() {
         </button>
         <div id="menu-hint">
           <span className="for-keys">
-            Open <kbd>&#9881;</kbd> to scrub the time of day and tune shadows
+            <kbd>WASD</kbd> move &middot; <kbd>Mouse</kbd> aim &middot;{" "}
+            <kbd>Click</kbd> shoot &middot; <kbd>Space</kbd> /{" "}
+            <kbd>Right-click</kbd> super &middot; <kbd>Esc</kbd> release mouse
+            <br />
+            <kbd>P</kbd> pause &middot; <kbd>T</kbd> time of day &middot;{" "}
+            <kbd>M</kbd> mute &middot; Open <kbd>&#9881;</kbd> for settings
           </span>
           <span className="for-touch">
             Left thumb moves &middot; right thumb drags to aim, release to fire

@@ -638,14 +638,14 @@ body.touch .for-keys {
 .card .stat {
   color: #b9b0e0;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   margin-top: 3px;
   font-size: 11px;
   display: flex;
 }
 .card .stat span {
   text-align: left;
-  width: 44px;
+  flex: 0 0 52px;
 }
 .card .stat i {
   background: #120c28;
@@ -880,7 +880,9 @@ body.touch .for-keys {
     font-size: 24px;
   }
   #menu-hint {
-    display: none;
+    margin-top: 8px;
+    font-size: 11px;
+    line-height: 1.4;
   }
   .pill {
     border-width: 2px;
